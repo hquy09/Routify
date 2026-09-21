@@ -1,14 +1,13 @@
 # Routify / LifeOS 
 
-Routify (LifeOS) là hệ thống web cục bộ (Local-first Web Application) hỗ trợ quản lý toàn diện lịch biểu, mục tiêu, lộ trình khóa học, nhiệm vụ hằng ngày, và hơn thể nữa.
-
+Routify (LifeOS) là hệ thống web cục bộ hỗ trợ quản lý toàn diện lịch biểu, mục tiêu, lộ trình khóa học, nhiệm vụ hằng ngày, và hơn thể nữa.
 Ứng dụng được thiết kế ưu tiên quyền riêng tư, lưu trữ toàn bộ dữ liệu trực tiếp trên máy của bạn và có thể hoạt động độc lập không cần kết nối Internet.
 > [!NOTE]
 > **Lưu ý về phiên bản thử nghiệm (Beta):**  
 > Dự án hiện đang trong giai đoạn phát triển **Beta**, do đó có thể phát sinh một số lỗi hoặc chưa hoàn thiện trong quá trình sử dụng. 
 ---
 
-## 1. Yêu Cầu Hệ Thống (Prerequisites)
+## 1. Yêu cầu hệ thống (Prerequisites)
 
 Trước khi cài đặt, hãy đảm bảo máy tính của bạn đã cài sẵn 2 công cụ nền tảng:
 
@@ -25,10 +24,8 @@ Trước khi cài đặt, hãy đảm bảo máy tính của bạn đã cài s�
      ```
 
 ---
-
-## 2. Hướng Dẫn Cài Đặt Lần Đầu Cho Người Mới (Quick Setup)
-
-### Bước 1: Tải mã nguồn về máy
+## 2. Cài đặt
+### Bước 1: Tải mã nguồn
 - Nếu dùng Git:
   ```bash
   git clone <URL_REPOSITORY_CUA_BAN>
@@ -36,10 +33,8 @@ Trước khi cài đặt, hãy đảm bảo máy tính của bạn đã cài s�
   ```
 - Hoặc tải file `.zip` từ GitHub về máy và giải nén vào thư mục bạn muốn.
 
-### Bước 2: Cài đặt thư viện phụ thuộc (Chỉ cần làm 1 lần đầu)
-
+### Bước 2: Cài đặt thư viện
 Mở cửa sổ dòng lệnh tại thư mục gốc của dự án:
-
 #### 1. Cài đặt thư viện Backend (Python):
 ```bash
 cd backend
@@ -47,7 +42,6 @@ pip install -r requirements.txt
 cd ..
 ```
 *(Nếu muốn dùng môi trường ảo riêng: chạy `python -m venv .venv`, kích hoạt bằng `.venv\Scripts\activate` trên Windows rồi mới chạy lệnh `pip install`)*.
-
 #### 2. Cài đặt thư viện Frontend (Node.js):
 ```bash
 cd frontend
@@ -57,10 +51,8 @@ cd ..
 
 ---
 
-## 3. Cách Khởi Động Ứng Dụng
-
-Sau khi đã hoàn tất cài đặt ở Mục 2, bạn có các lựa chọn khởi động thuận tiện sau:
-
+## 3. Khởi động
+Sau khi đã hoàn tất cài đặt ở Mục 2, bạn có thể:
 ### Cách 1: Khởi động 1-click (Khuyên dùng trên Windows)
 Nhấp đúp chuột vào file:
 ```text
@@ -101,7 +93,7 @@ Nếu bạn là lập trình viên muốn debug chi tiết:
 
 ---
 
-## 4. Cách Dừng / Tắt Ứng Dụng
+## 4. Tắt ứng dụng
 
 Khi không còn sử dụng hoặc cần tắt toàn bộ tiến trình:
 - **Nếu chạy qua file `.bat` hoặc chạy ngầm:** Nhấp đúp vào file `stop.bat`. Script sẽ tự động giải phóng sạch sẽ cổng 8000 và 5173.
@@ -109,21 +101,17 @@ Khi không còn sử dụng hoặc cần tắt toàn bộ tiến trình:
 
 ---
 
-## 5. Lưu Ý Quan Trọng Về Việc Chạy Cục Bộ (Local Notes & Privacy)
-
+## 5. Lưu ý:
 ### 1. Cơ sở dữ liệu lưu cục bộ (Local Database)
 - Ứng dụng sử dụng cơ sở dữ liệu SQLite đặt tại đường dẫn: `backend/lifeos.db`.
 - Toàn bộ dữ liệu bài học, nhiệm vụ, thói quen và thông tin cá nhân chỉ nằm duy nhất trên máy tính của bạn, không bị tải lên máy chủ ngoài.
-
 ### 2. Tính năng chạy Offline 100%
 - Toàn bộ thư viện giao diện, icon và phông chữ đều được đóng gói cục bộ.
 - Bạn hoàn toàn có thể khởi chạy và sử dụng toàn bộ tính năng của Routify ngay cả khi thiết bị ngắt kết nối Internet.
-
 ### 3. Quản lý cổng mạng (Port Usage)
 - **Backend:** Cổng mặc định `8000`.
 - **Frontend:** Cổng mặc định `5173`.
 - Nếu gặp thông báo lỗi không thể kết nối hoặc cổng đang bị chiếm dụng bởi ứng dụng khác, hãy chạy file `stop.bat` để tự động dọn dẹp tiến trình treo trước khi khởi động lại.
-
 ### 4. Sao lưu và an toàn dữ liệu (Backup & Restore)
 - Bạn có thể chủ động sao lưu dữ liệu bất kỳ lúc nào bằng 2 cách:
   - **Cách 1:** Truy cập trang **Cài đặt (Settings)** trên giao diện web và chọn **Xuất gói sao lưu (Export Backup Bundle)**. Hệ thống sẽ tạo một file nén zip an toàn trong thư mục `backend/storage/backups/`.

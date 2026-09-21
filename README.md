@@ -119,7 +119,7 @@ Khi không còn sử dụng hoặc cần tắt toàn bộ tiến trình:
 
 ---
 
-## 6. Cấu Trúc Thư Mục Dự Án
+## 6. Cấu trúc thư mục
 
 ```text
 lifeos/
@@ -147,7 +147,7 @@ lifeos/
 
 ---
 
-## 7. Giấy Phép Sử Dụng (License)
+## 7. Giấy phép sử dụng (License)
 
 Dự án được phân phối dưới giấy phép mã nguồn mở [MIT License](LICENSE).  
 Bản quyền thuộc về © 2026 Huu Quy.

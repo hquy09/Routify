@@ -1,104 +1,164 @@
-# LifeOS - Hệ Thống Quản Lý Học Tập, Năng Suất & Sức Khỏe Toàn Diện 🚀
+# Routify / LifeOS - Nền Tảng Quản Lý Năng Suất & Lộ Trình Học Tập Cá Nhân
 
-**LifeOS** là một ứng dụng web toàn diện (All-in-One Personal Operating System) được thiết kế để giúp bạn tối ưu hóa thời gian, quản lý lộ trình học tập, theo dõi các mục tiêu đếm ngược quan trọng và cân bằng sức khỏe tinh thần chống kiệt sức (Burnout).
+Routify (LifeOS) là hệ thống web cục bộ (Local-first Web Application) hỗ trợ quản lý toàn diện lịch biểu, mục tiêu, lộ trình khóa học, nhiệm vụ hằng ngày và theo dõi sức khỏe tinh thần chống quá tải (Burnout).
 
----
-
-## ✨ Tính Năng Nổi Bật
-
-### 1. 📊 Bảng Điều Khiển Tổng Quan (Dashboard)
-- **Thống kê thời gian thực**: Tổng số giờ học tập, tỷ lệ hoàn thành công việc, số chu kỳ Pomodoro và điểm sức khỏe tinh thần.
-- **Biểu đồ & Bản đồ nhiệt (Activity Heatmap)**: Trực quan hóa tần suất hoạt động học tập mỗi ngày trong tuần/tháng.
-- **Chế độ Toàn màn hình (Full View Mode)**: Bấm `[⛶ Toàn màn hình]` (hoặc phím `ESC` để thoát) giúp ẩn thanh bên và mở rộng 100% diện tích làm việc tập trung.
-
-### 2. 📅 Lịch Biểu Thông Minh (Calendar & Time-Blocking)
-- Phân bổ lịch trình tuần theo phương pháp **Time-blocking** khoa học.
-- Tích hợp trực tiếp bộ đếm thời gian **Pomodoro** để học sâu (Deep Work).
-- Banner đếm ngược sự kiện quan trọng chạy trực tiếp trên đầu trang lịch với 3 chế độ xem: **Vòng tròn**, **Dấu chấm**, và **Thẻ số điện tử**.
-
-### 3. ⏳ Đếm Ngược Mục Tiêu & Cover Studio (Countdowns)
-- **5 Phong cách Bìa Nghệ Thuật**:
-  - 🏷️ **Thẻ cơ bản (Default)**: Tùy chỉnh màu sắc chủ đạo qua bảng màu Palette và mã Hex.
-  - 🎨 **Fonty Typo**: Đổ dốc Gradient 2 màu rực rỡ, chữ Typography phong cách, tự động cân bằng tương phản sáng/tối.
-  - 🇨🇭 **Swiss Style**: Phong cách tối giản tương phản cao, đồng hồ đo tiến độ hình vòng cung SVG xoay thuận/nghịch chiều kim đồng hồ.
-  - ▦ **Grid Matrix**: Lưới các ô vuông/chấm tròn thể hiện trạng thái bài học (Tô đặc / Viền ngoài).
-  - ⚪ **Minimal**: Tối giản, thanh lịch, đường nét tinh gọn.
-- **Phân bố màu thông minh khi ghim thẻ**: Ghim thẻ (`Pin`) giữ trọn vẹn phong cách bìa bạn đã chọn, đồng thời gắn dải ruy băng viền vàng hoàng gia (`Golden Ribbon`) và huy hiệu `[📌 ĐÃ GHIM]` nổi bật.
-- **Chế độ đếm thời gian**: Chuyển đổi linh hoạt giữa đếm số ngày to trọng tâm và đếm chi tiết `D:H:M:S` chính xác đến từng giây.
-
-### 4. 🎓 Khóa Học & Lộ Trình Kiến Thức (Courses)
-- **Cây bài học đa cấp độ**: Tổ chức chương/phần/bài học phân nhánh trực quan.
-- **⚔️ Chế độ Cày Cuốc Gamification (10 Bậc Danh Hiệu)**:
-  - Tích lũy điểm EXP sau mỗi bài học hoàn thành.
-  - Thăng hạng từ 🛡️ *Tập Sự*, ⚔️ *Chiến Thần Học Thuật* đến 🌌 *Tuyệt Đối Thần Vương*.
-  - Nút bật/tắt cày cuốc 1-chạm ngay trên thanh tiêu đề.
-- **Ma trận Rủi ro Kiệt sức (Burnout Risk Matrix)**: Phân tích khối lượng học tập dự kiến theo ngày so với hạn chót thi cử để cảnh báo nguy cơ quá tải.
-
-### 5. ✅ Quản Lý Công Việc & Ghi Chú (Tasks & Notes)
-- Phân loại công việc theo ma trận ưu tiên (Eisenhower Matrix).
-- Trình soạn thảo ghi chú hỗ trợ định dạng Markdown, danh sách việc cần làm (Checklist) và đính kèm tài liệu.
-
-### 6. 🧘 Sức Khỏe Tinh Thần & Chống Burnout (Wellbeing Management)
-- Theo dõi chỉ số tâm trạng (Mood), thời lượng giấc ngủ và mức độ căng thẳng.
-- Đưa ra lời khuyên nghỉ ngơi và cảnh báo kịp thời khi cường độ học tập vượt ngưỡng an toàn.
+Ứng dụng được thiết kế ưu tiên quyền riêng tư, lưu trữ toàn bộ dữ liệu trực tiếp trên máy của bạn và có thể hoạt động độc lập không cần kết nối Internet.
 
 ---
 
-## 🛠️ Công Nghệ Sử Dụng (Tech Stack)
+## 1. Yêu Cầu Hệ Thống (Prerequisites)
 
-- **Frontend**:
-  - React 19 + TypeScript
-  - Vite (Siêu nhanh, tối ưu build production)
-  - Tailwind CSS (Thiết kế hiện đại, hỗ trợ Dark Mode hoàn hảo)
-  - Lucide React Icons
-- **Backend**:
-  - Python 3.10+
-  - FastAPI (REST API hiệu năng cao)
-  - SQLModel / SQLAlchemy + Alembic (Quản lý database & migration)
-  - SQLite (Lưu trữ cục bộ nhanh gọn, không cần cấu hình phức tạp)
-  - Uvicorn ASGI Server
+Trước khi cài đặt, hãy đảm bảo máy tính của bạn đã cài sẵn 2 công cụ nền tảng:
 
----
-
-## 🚀 Hướng Dẫn Cài Đặt & Chạy Ứng Dụng
-
-### Cách 1: Khởi động nhanh 1-Click (Khuyên dùng trên Windows)
-Chỉ cần nhấp đúp chuột vào file:
-```bash
-start.bat
-```
-*Script sẽ tự động khởi chạy cả Backend (port 8000) và Frontend (port 5173).*  
-Để dừng ứng dụng, chạy file `stop.bat`.
+1. **Python 3.10 trở lên**:
+   - Tải tại: [https://www.python.org/downloads/](https://www.python.org/downloads/)
+   - *Lưu ý quan trọng khi cài đặt:* Đánh dấu tích vào ô **"Add Python to PATH"** ở bước đầu tiên.
+2. **Node.js (phiên bản LTS 18.x hoặc 20.x trở lên)**:
+   - Tải tại: [https://nodejs.org/](https://nodejs.org/) (chọn bản Recommended for Most Users).
+   - Kiểm tra cài đặt bằng cách mở cửa sổ lệnh (Command Prompt hoặc PowerShell) và gõ:
+     ```bash
+     python --version
+     node --version
+     npm --version
+     ```
 
 ---
 
-### Cách 2: Khởi chạy thủ công bằng dòng lệnh
+## 2. Hướng Dẫn Cài Đặt Lần Đầu Cho Người Mới (Quick Setup)
 
-#### 1. Khởi chạy Backend:
+### Bước 1: Tải mã nguồn về máy
+- Nếu dùng Git:
+  ```bash
+  git clone <URL_REPOSITORY_CUA_BAN>
+  cd lifeos
+  ```
+- Hoặc tải file `.zip` từ GitHub về máy và giải nén vào thư mục bạn muốn.
+
+### Bước 2: Cài đặt thư viện phụ thuộc (Chỉ cần làm 1 lần đầu)
+
+Mở cửa sổ dòng lệnh tại thư mục gốc của dự án:
+
+#### 1. Cài đặt thư viện Backend (Python):
 ```bash
 cd backend
-python -m venv .venv
-# Kích hoạt virtual environment:
-# Windows:
-.venv\Scripts\activate
-# Linux/macOS:
-source .venv/bin/activate
-
 pip install -r requirements.txt
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+cd ..
 ```
+*(Nếu muốn dùng môi trường ảo riêng: chạy `python -m venv .venv`, kích hoạt bằng `.venv\Scripts\activate` trên Windows rồi mới chạy lệnh `pip install`)*.
 
-#### 2. Khởi chạy Frontend:
-Mở một cửa sổ dòng lệnh khác:
+#### 2. Cài đặt thư viện Frontend (Node.js):
 ```bash
 cd frontend
 npm install
-npm run dev
+cd ..
 ```
-
-Sau đó mở trình duyệt tại: **http://localhost:5173**
 
 ---
 
-## 📄 Bản Quyền (License)
-Dự án được phân phối dưới giấy phép [MIT License](LICENSE).
+## 3. Cách Khởi Động Ứng Dụng
+
+Sau khi đã hoàn tất cài đặt ở Mục 2, bạn có các lựa chọn khởi động thuận tiện sau:
+
+### Cách 1: Khởi động 1-click (Khuyên dùng trên Windows)
+Nhấp đúp chuột vào file:
+```text
+start.bat
+```
+- Script sẽ tự động kiểm tra cổng mạng, khởi chạy Backend (cổng 8000), Frontend (cổng 5173) và mở trình duyệt web cho bạn.
+- Màn hình console sẽ hiển thị nhật ký hoạt động để bạn theo dõi.
+
+### Cách 2: Khởi động chế độ ẩn console (Chạy ngầm)
+Nếu bạn không muốn hiển thị các cửa sổ màn hình đen CMD trên màn hình:
+Nhấp đúp chuột vào file:
+```text
+start_hidden.bat
+```
+- Cả Backend và Frontend sẽ được kích hoạt chạy ngầm hoàn toàn. Trình duyệt tự động mở tại địa chỉ `http://localhost:5173`.
+
+### Cách 3: Khởi động bằng Python Unified Launcher
+Mở terminal tại thư mục gốc và chạy:
+```bash
+python run.py
+```
+
+### Cách 4: Khởi động thủ công bằng 2 terminal độc lập
+Nếu bạn là lập trình viên muốn debug chi tiết:
+
+- **Terminal 1 (Backend):**
+  ```bash
+  cd backend
+  python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+  ```
+- **Terminal 2 (Frontend):**
+  ```bash
+  cd frontend
+  npm run dev
+  ```
+- Truy cập giao diện tại: `http://localhost:5173`
+- Tài liệu API (Swagger UI): `http://127.0.0.1:8000/docs`
+
+---
+
+## 4. Cách Dừng / Tắt Ứng Dụng
+
+Khi không còn sử dụng hoặc cần tắt toàn bộ tiến trình:
+- **Nếu chạy qua file `.bat` hoặc chạy ngầm:** Nhấp đúp vào file `stop.bat`. Script sẽ tự động giải phóng sạch sẽ cổng 8000 và 5173.
+- **Nếu chạy thủ công trên terminal:** Nhấn tổ hợp phím `Ctrl + C` trên từng cửa sổ terminal.
+
+---
+
+## 5. Lưu Ý Quan Trọng Về Việc Chạy Cục Bộ (Local Notes & Privacy)
+
+### 1. Cơ sở dữ liệu lưu cục bộ (Local Database)
+- Ứng dụng sử dụng cơ sở dữ liệu SQLite đặt tại đường dẫn: `backend/lifeos.db`.
+- Toàn bộ dữ liệu bài học, nhiệm vụ, thói quen và thông tin cá nhân chỉ nằm duy nhất trên máy tính của bạn, không bị tải lên máy chủ ngoài.
+- File `.gitignore` của dự án đã được cấu hình chặt chẽ để loại trừ file `lifeos.db` và các file bản sao lưu (`.zip`, `.db`) khỏi commit Git, giúp tránh rò rỉ dữ liệu cá nhân khi bạn đưa mã nguồn lên GitHub.
+
+### 2. Tính năng chạy Offline 100%
+- Toàn bộ thư viện giao diện, icon và phông chữ đều được đóng gói cục bộ.
+- Bạn hoàn toàn có thể khởi chạy và sử dụng toàn bộ tính năng của Routify ngay cả khi thiết bị ngắt kết nối Internet.
+
+### 3. Quản lý cổng mạng (Port Usage)
+- **Backend:** Cổng mặc định `8000`.
+- **Frontend:** Cổng mặc định `5173`.
+- Nếu gặp thông báo lỗi không thể kết nối hoặc cổng đang bị chiếm dụng bởi ứng dụng khác, hãy chạy file `stop.bat` để tự động dọn dẹp tiến trình treo trước khi khởi động lại.
+
+### 4. Sao lưu và an toàn dữ liệu (Backup & Restore)
+- Bạn có thể chủ động sao lưu dữ liệu bất kỳ lúc nào bằng 2 cách:
+  - **Cách 1:** Truy cập trang **Cài đặt (Settings)** trên giao diện web và chọn **Xuất gói sao lưu (Export Backup Bundle)**. Hệ thống sẽ tạo một file nén zip an toàn trong thư mục `backend/storage/backups/`.
+  - **Cách 2:** Copy trực tiếp file `backend/lifeos.db` ra nơi lưu trữ an toàn (ổ cứng gắn ngoài, USB, v.v.).
+
+---
+
+## 6. Cấu Trúc Thư Mục Dự Án
+
+```text
+lifeos/
+├── start.bat               # Khởi động ứng dụng (có hiển thị console)
+├── start_hidden.bat        # Khởi động ứng dụng chạy ngầm (ẩn console)
+├── stop.bat                # Tắt toàn bộ dịch vụ backend & frontend
+├── run.py                  # Script khởi động hợp nhất bằng Python
+├── README.md               # Hướng dẫn sử dụng và tài liệu kỹ thuật
+├── LICENSE                 # Giấy phép mã nguồn mở MIT
+├── .gitignore              # Bộ quy tắc loại trừ file rác và dữ liệu cá nhân
+│
+├── backend/                # Mã nguồn Backend (Python FastAPI)
+│   ├── app/                # Logic xử lý API, models, schemas, services
+│   ├── alembic/            # Cấu hình migration database
+│   ├── requirements.txt    # Danh sách thư viện Python cần cài đặt
+│   ├── storage/            # Thư mục chứa tệp đính kèm và bản sao lưu nội bộ
+│   └── tests/              # Bộ kiểm thử tự động (Unit tests)
+│
+└── frontend/               # Mã nguồn Frontend (React 19, TypeScript, Vite)
+    ├── src/                # Toàn bộ components, pages, hooks, utils
+    ├── public/             # Tệp tĩnh, favicon, icons
+    ├── package.json        # Danh sách thư viện Node.js
+    └── tailwind.config.js  # Cấu hình hệ thống giao diện Tailwind CSS
+```
+
+---
+
+## 7. Giấy Phép Sử Dụng (License)
+
+Dự án được phân phối dưới giấy phép mã nguồn mở [MIT License](LICENSE).  
+Bản quyền thuộc về © 2026 Huu Quy. Bạn được phép sử dụng, sửa đổi và phân phối lại với điều kiện giữ nguyên thông báo bản quyền và nguồn tác giả ban đầu.

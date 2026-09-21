@@ -1,9 +1,11 @@
-# Routify / LifeOS - Nền Tảng Quản Lý Năng Suất & Lộ Trình Học Tập Cá Nhân
+# Routify / LifeOS 
 
-Routify (LifeOS) là hệ thống web cục bộ (Local-first Web Application) hỗ trợ quản lý toàn diện lịch biểu, mục tiêu, lộ trình khóa học, nhiệm vụ hằng ngày và theo dõi sức khỏe tinh thần chống quá tải (Burnout).
+Routify (LifeOS) là hệ thống web cục bộ (Local-first Web Application) hỗ trợ quản lý toàn diện lịch biểu, mục tiêu, lộ trình khóa học, nhiệm vụ hằng ngày, và hơn thể nữa.
 
 Ứng dụng được thiết kế ưu tiên quyền riêng tư, lưu trữ toàn bộ dữ liệu trực tiếp trên máy của bạn và có thể hoạt động độc lập không cần kết nối Internet.
-
+> [!NOTE]
+> **Lưu ý về phiên bản thử nghiệm (Beta):**  
+> Dự án hiện đang trong giai đoạn phát triển **Beta**, do đó có thể phát sinh một số lỗi hoặc hành vi chưa hoàn thiện trong quá trình sử dụng. Rất mong nhận được sự thông cảm và đóng góp ý kiến, phản hồi báo lỗi từ cộng đồng qua mục **Issues** trên GitHub để dự án ngày càng hoàn thiện hơn.
 ---
 
 ## 1. Yêu Cầu Hệ Thống (Prerequisites)
@@ -112,7 +114,6 @@ Khi không còn sử dụng hoặc cần tắt toàn bộ tiến trình:
 ### 1. Cơ sở dữ liệu lưu cục bộ (Local Database)
 - Ứng dụng sử dụng cơ sở dữ liệu SQLite đặt tại đường dẫn: `backend/lifeos.db`.
 - Toàn bộ dữ liệu bài học, nhiệm vụ, thói quen và thông tin cá nhân chỉ nằm duy nhất trên máy tính của bạn, không bị tải lên máy chủ ngoài.
-- File `.gitignore` của dự án đã được cấu hình chặt chẽ để loại trừ file `lifeos.db` và các file bản sao lưu (`.zip`, `.db`) khỏi commit Git, giúp tránh rò rỉ dữ liệu cá nhân khi bạn đưa mã nguồn lên GitHub.
 
 ### 2. Tính năng chạy Offline 100%
 - Toàn bộ thư viện giao diện, icon và phông chữ đều được đóng gói cục bộ.
@@ -162,3 +163,4 @@ lifeos/
 
 Dự án được phân phối dưới giấy phép mã nguồn mở [MIT License](LICENSE).  
 Bản quyền thuộc về © 2026 Huu Quy. Bạn được phép sử dụng, sửa đổi và phân phối lại với điều kiện giữ nguyên thông báo bản quyền và nguồn tác giả ban đầu.
+

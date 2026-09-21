@@ -1,0 +1,151 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;        /* Pure White #ffffff */
+    --foreground: 0 0% 5%;          /* Deep Black #0a0a0a */
+
+    --card: 0 0% 100%;              /* #ffffff */
+    --card-foreground: 0 0% 5%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 5%;
+
+    --primary: 0 0% 9%;             /* Solid Black #171717 */
+    --primary-foreground: 0 0% 98%; /* White #fafafa */
+
+    --secondary: 0 0% 96%;          /* #f5f5f5 */
+    --secondary-foreground: 0 0% 9%;
+
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;   /* #737373 */
+
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 9%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 89%;             /* Crisp Border #e5e5e5 */
+    --input: 0 0% 89%;
+    --ring: 0 0% 9%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 0 0% 0%;          /* Pitch Black #000000 */
+    --foreground: 0 0% 98%;         /* Crisp White #fafafa */
+
+    --card: 0 0% 6%;                /* Deep Black/Zinc #0f0f11 */
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 0 0% 98%;            /* Pure White #fafafa */
+    --primary-foreground: 0 0% 9%;  /* Black #171717 */
+
+    --secondary: 0 0% 14%;          /* Dark Neutral #262626 */
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 64%;   /* #a3a3a3 */
+
+    --accent: 0 0% 14%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 18%;             /* Dark Border #2e2e2e */
+    --input: 0 0% 18%;
+    --ring: 0 0% 98%;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+}
+
+/* ==========================================================================
+   SHADCN / UI THEME ENHANCEMENTS FOR LIGHT & DARK MODES
+   ========================================================================== */
+
+/* Clean form inputs */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  @apply transition-colors;
+}
+
+html:not(.dark) input:not([type="checkbox"]):not([type="radio"]),
+html:not(.dark) select,
+html:not(.dark) textarea {
+  background-color: #ffffff;
+  color: #0a0a0a;
+  border-color: #e5e5e5;
+}
+
+html:not(.dark) input:focus,
+html:not(.dark) select:focus,
+html:not(.dark) textarea:focus {
+  border-color: #0a0a0a;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.08);
+}
+
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: #fafafa;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.12);
+}
+
+/* Custom scrollbars matching shadcn aesthetic */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Special glow effect for pinned tag */
+@keyframes pinnedAuraPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+.animate-pinned-aura {
+  animation: pinnedAuraPulse 2.4s ease-in-out infinite;
+}

@@ -1,0 +1,81 @@
+# LifeOS Git Ignore Configuration
+
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Production builds
+dist/
+frontend/dist/
+dist-ssr/
+
+# Python cache & virtual environments
+__pycache__/
+backend/**/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+venv/
+.venv/
+env/
+ENV/
+build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+parts/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Database & SQLite files (Keep database local, do not push user data to Git)
+*.db
+*.sqlite
+*.sqlite3
+backend/*.db
+
+# Storage, Backups & Local User Data (Never upload user data or backups)
+backend/storage/backups/*
+!backend/storage/backups/.gitkeep
+backend/storage/attachments/*
+!backend/storage/attachments/.gitkeep
+backend/storage/uploads/*
+!backend/storage/uploads/.gitkeep
+*.zip
+*.tar.gz
+*.7z
+*.rar
+
+# Environment, Cloud Credentials & Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*service_account*.json
+*client_secret*.json
+credentials.json
+token.json
+
+# Logs & Debug
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

@@ -117,12 +117,29 @@ export const api = {
     },
     create: (data: Partial<FixedSchedule>) =>
       request<FixedSchedule>('/schedules', { method: 'POST', body: JSON.stringify(data) }),
+    createBatch: (data: { schedules: Partial<FixedSchedule>[]; replace_category?: string }) =>
+      request<FixedSchedule[]>('/schedules/batch', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: number, data: Partial<FixedSchedule>) =>
       request<FixedSchedule>(`/schedules/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: number) => request<{ message: string }>(`/schedules/${id}`, { method: 'DELETE' }),
     setOverride: (id: number, data: { occurrence_date: string; status: string; override_start_time?: string; override_end_time?: string; notes?: string }) =>
       request<any>(`/schedules/${id}/override`, { method: 'POST', body: JSON.stringify({ ...data, fixed_schedule_id: id }) }),
     getFreeTime: (targetDate: string) => request<any>(`/schedules/free-time/${targetDate}`),
+    getSchoolClasses: () =>
+      request<{ id: number; code: string; name: string; grade: number; shift: string }[]>(
+        '/schedules/school-sync/classes'
+      ),
+    getSchoolTimetable: (classCode: string) =>
+      request<{
+        school_name: string;
+        academic_year: number;
+        term: number;
+        effective_date: string;
+        class_code: string;
+        class_id: number;
+        grid: Record<string, string>;
+        slots_count: number;
+      }>(`/schedules/school-sync/timetable?class_code=${encodeURIComponent(classCode)}`),
   },
 
   // Courses

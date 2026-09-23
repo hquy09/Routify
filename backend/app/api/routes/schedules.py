@@ -5,7 +5,8 @@ from datetime import date
 from app.api.deps import get_database
 from app.schemas.fixed_schedule import (
     FixedScheduleCreate, FixedScheduleUpdate, FixedScheduleOut,
-    FixedScheduleOccurrenceCreate, FixedScheduleOccurrenceOut, FreeTimeResponse
+    FixedScheduleOccurrenceCreate, FixedScheduleOccurrenceOut, FreeTimeResponse,
+    BatchScheduleRequest
 )
 from app.services.schedule_service import ScheduleService
 
@@ -18,6 +19,28 @@ def list_schedules(is_active: Optional[bool] = None, db: Session = Depends(get_d
 @router.post("", response_model=FixedScheduleOut)
 def create_schedule(schedule_in: FixedScheduleCreate, db: Session = Depends(get_database)):
     return ScheduleService.create_schedule(db, schedule_in)
+
+@router.post("/batch", response_model=List[FixedScheduleOut])
+def create_batch_schedules(req: BatchScheduleRequest, db: Session = Depends(get_database)):
+    return ScheduleService.create_batch_schedules(db, req.schedules, req.replace_category)
+
+@router.get("/school-sync/classes")
+def get_school_classes():
+    """Lấy danh sách các lớp học của trường THPT Ngô Gia Tự"""
+    from app.services.school_sync_service import SchoolSyncService
+    try:
+        return SchoolSyncService.get_classes_list()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/school-sync/timetable")
+def get_school_timetable(class_code: str = Query(..., description="Mã lớp, VD: 10A01")):
+    """Lấy ma trận thời khóa biểu đã giải mã của một lớp cụ thể"""
+    from app.services.school_sync_service import SchoolSyncService
+    try:
+        return SchoolSyncService.get_class_timetable_grid(class_code)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{schedule_id}", response_model=FixedScheduleOut)
 def get_schedule(schedule_id: int, db: Session = Depends(get_database)):

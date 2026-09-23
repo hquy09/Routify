@@ -5,18 +5,16 @@ import { DailyTimeline } from '../components/calendar/DailyTimeline';
 import { FixedScheduleModal } from '../components/calendar/FixedScheduleModal';
 import { SchoolTimetablePresetModal } from '../components/calendar/SchoolTimetablePresetModal';
 import { ManageFixedSchedulesModal } from '../components/calendar/ManageFixedSchedulesModal';
-import { CalendarGreetingQuote } from '../components/calendar/CalendarGreetingQuote';
-import { CalendarCountdownBanner } from '../components/countdown/CalendarCountdownBanner';
-import { CountdownModal } from '../components/countdown/CountdownModal';
 import { TaskModal } from '../components/tasks/TaskModal';
 import { TaskTransferModal } from '../components/tasks/TaskTransferModal';
 import { UndoToast } from '../components/ui/UndoToast';
 import {
-  CalendarWeeklyResponse, CalendarMonthlyResponse, CalendarDayView, Task, Goal, CountdownItem, FixedSchedule
+  CalendarWeeklyResponse, CalendarMonthlyResponse, CalendarDayView, Task, Goal, FixedSchedule
 } from '../types';
 import { api } from '../services/api';
 import { toLocalDateString, formatDatetimeForBackend } from '../utils/dateUtils';
-import { School, Settings2, Send, Maximize2, Minimize2 } from 'lucide-react';
+import { School, Settings2, Maximize2, Minimize2, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { Button } from '../components/ui/button';
 
 export const CalendarPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'WEEKLY' | 'MONTHLY' | 'DAILY'>('WEEKLY');
@@ -26,13 +24,16 @@ export const CalendarPage: React.FC = () => {
   const [dailyData, setDailyData] = useState<CalendarDayView | null>(null);
   const [currentDateRef, setCurrentDateRef] = useState<Date>(new Date());
   const [selectedDayDate, setSelectedDayDate] = useState<string>(() => toLocalDateString());
+
+  const formatDateLabel = (dateStr?: string) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length < 3) return dateStr;
+    return `${parts[2]}/${parts[1]}`;
+  };
   const [goals, setGoals] = useState<Goal[]>([]);
 
-  // Modals & Countdowns
-  const [countdowns, setCountdowns] = useState<CountdownItem[]>([]);
-  const [isCountdownModalOpen, setIsCountdownModalOpen] = useState(false);
-  const [countdownToEdit, setCountdownToEdit] = useState<CountdownItem | null>(null);
-
+  // Task & Schedule Modals
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [taskToTransfer, setTaskToTransfer] = useState<Task | null>(null);
@@ -43,6 +44,7 @@ export const CalendarPage: React.FC = () => {
   // Fixed Schedules management
   const [allFixedSchedules, setAllFixedSchedules] = useState<FixedSchedule[]>([]);
   const [scheduleToEdit, setScheduleToEdit] = useState<FixedSchedule | null>(null);
+  const [scheduleDefaultDay, setScheduleDefaultDay] = useState<number | undefined>(undefined);
   const [isManageSchedulesOpen, setIsManageSchedulesOpen] = useState(false);
   const [isSchoolPresetOpen, setIsSchoolPresetOpen] = useState(false);
 
@@ -59,38 +61,6 @@ export const CalendarPage: React.FC = () => {
     onDismiss: () => {},
   });
   const pendingDeleteTimerRef = useRef<any>(null);
-
-  const loadCountdowns = async () => {
-    try {
-      const list = await api.countdowns.list();
-      setCountdowns(list);
-    } catch (err) {
-      console.error('Failed to load countdowns:', err);
-    }
-  };
-
-  const handleSaveCountdown = async (data: Partial<CountdownItem>) => {
-    try {
-      if (countdownToEdit) {
-        await api.countdowns.update(countdownToEdit.id, data);
-      } else {
-        await api.countdowns.create(data);
-      }
-      loadCountdowns();
-    } catch (err) {
-      console.error('Failed to save countdown:', err);
-      throw err;
-    }
-  };
-
-  const handleUpdateCountdown = async (id: number, data: Partial<CountdownItem>) => {
-    try {
-      await api.countdowns.update(id, data);
-      loadCountdowns();
-    } catch (err) {
-      console.error('Failed to update countdown:', err);
-    }
-  };
 
   const loadWeekly = async (refDate: Date) => {
     try {
@@ -133,7 +103,6 @@ export const CalendarPage: React.FC = () => {
 
   useEffect(() => {
     loadGoals();
-    loadCountdowns();
     loadFixedSchedules();
   }, []);
 
@@ -448,8 +417,9 @@ export const CalendarPage: React.FC = () => {
     }
   };
 
-  const handleOpenCreateFixedSchedule = () => {
+  const handleOpenCreateFixedSchedule = (dayOfWeek?: number) => {
     setScheduleToEdit(null);
+    setScheduleDefaultDay(dayOfWeek);
     setIsScheduleModalOpen(true);
   };
 
@@ -485,9 +455,9 @@ export const CalendarPage: React.FC = () => {
     }
   };
 
-  const handleSaveBatchFixedSchedules = async (schedules: Partial<FixedSchedule>[]) => {
+  const handleSaveBatchFixedSchedules = async (schedules: Partial<FixedSchedule>[], replaceCategory?: string) => {
     try {
-      await Promise.all(schedules.map((s) => api.schedules.create(s)));
+      await api.schedules.createBatch({ schedules, replace_category: replaceCategory });
       await loadFixedSchedules();
       reloadCurrentView();
     } catch (err) {
@@ -525,179 +495,240 @@ export const CalendarPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4">
-      {/* 1. Greeting & Hourly Philosophy Quote Box */}
-      <CalendarGreetingQuote />
+    <div className="flex flex-col flex-1 min-h-0 space-y-2.5 h-full">
+      {/* Unified Top Navigation & Functions Bar */}
+      <div className="shrink-0 flex flex-wrap items-center justify-between gap-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 shadow-xs">
+        {/* Left: Week / Date Navigation */}
+        <div className="flex items-center gap-3 flex-wrap">
+          {viewMode === 'WEEKLY' ? (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="text-xl">📅</span>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 leading-tight">
+                    Tuần {weeklyData?.week_number}, Năm {weeklyData?.year}
+                  </h3>
+                  {weeklyData && (
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      ({formatDateLabel(weeklyData.start_date)} - {formatDateLabel(weeklyData.end_date)})
+                    </span>
+                  )}
+                </div>
+              </div>
 
-      {/* 2. Countdown Banner (Hero Expanded or Collapsed Top Bar) */}
-      <CalendarCountdownBanner
-        countdowns={countdowns}
-        onOpenCreate={() => {
-          setCountdownToEdit(null);
-          setIsCountdownModalOpen(true);
-        }}
-        onOpenEdit={(item) => {
-          setCountdownToEdit(item);
-          setIsCountdownModalOpen(true);
-        }}
-        onUpdateItem={handleUpdateCountdown}
-      />
-
-      {/* Top View Selector bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Calendar</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Tổng hợp thời gian biểu: Lịch cố định, Nhiệm vụ và Ghi chú
-          </p>
+              {/* Prev / Today / Next Week navigation buttons */}
+              <div className="flex items-center gap-1 ml-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handlePrevWeek}
+                  title="Tuần trước"
+                  className="h-8 w-8"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleToday}
+                  className="h-8 text-xs font-semibold px-2.5"
+                >
+                  Tuần hiện tại
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleNextWeek}
+                  title="Tuần sau"
+                  className="h-8 w-8"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </>
+          ) : viewMode === 'DAILY' ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xl">📅</span>
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 leading-tight">
+                  Lịch Ngày
+                </h3>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                  {selectedDayDate}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-xl">📅</span>
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 leading-tight">
+                  Lịch Tháng
+                </h3>
+                {monthlyData && (
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                    Tháng {monthlyData.month} / {monthlyData.year}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Right: Actions & View Selector */}
+        <div className="ml-auto flex items-center justify-end gap-2 flex-wrap">
           {/* Preset TKB Trường học */}
           <button
+            type="button"
             onClick={() => setIsSchoolPresetOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-900/60 transition shadow-2xs"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-900/60 transition shadow-2xs h-8"
             title="Tạo nhanh Thời khóa biểu đi học trên trường (T2-T6 5 tiết, T7 4 tiết, tùy chỉnh linh hoạt)"
           >
             <School className="w-3.5 h-3.5" />
-            <span>🏫 TKB Trường học</span>
+            <span>🏫 TKB Trường</span>
           </button>
 
           {/* Quản lý Lịch cố định */}
           <button
+            type="button"
             onClick={() => setIsManageSchedulesOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition shadow-2xs"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition shadow-2xs h-8"
             title="Quản lý, chỉnh sửa, bật/tắt toàn bộ lịch cố định trong tuần"
           >
             <Settings2 className="w-3.5 h-3.5" />
             <span>⚙️ Quản lý Lịch ({allFixedSchedules.length})</span>
           </button>
 
-          {/* Telegram Quick Sync/Briefing Button */}
-          <button
-            onClick={async () => {
-              try {
-                const res = await api.telegram.sendDailyBriefing();
-                alert('🚀 ' + res.message);
-              } catch (err: any) {
-                alert('Lưu ý: ' + (err?.message || 'Vui lòng cấu hình Bot Token trong Cài đặt (Settings) trước'));
-              }
-            }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-900/60 transition shadow-2xs"
-            title="Gửi báo cáo tóm tắt lịch trình và nhiệm vụ hôm nay vào ứng dụng Telegram của bạn"
+          {/* + Thêm Lịch cố định */}
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => handleOpenCreateFixedSchedule()}
+            className="gap-1 text-xs h-8"
           >
-            <Send className="w-3.5 h-3.5 text-blue-500" />
-            <span>Báo Telegram</span>
-          </button>
+            <Plus className="w-3.5 h-3.5" />
+            <span>Thêm Lịch</span>
+          </Button>
 
-          {/* View mode toggle - official shadcn TabsList */}
-          <div className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800/60 p-1 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 select-none">
+          {/* View mode toggle */}
+          <div className="inline-flex h-8 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800/60 p-0.5 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 select-none">
             <button
+              type="button"
               onClick={() => setViewMode('WEEKLY')}
-              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium transition-all ${
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
                 viewMode === 'WEEKLY'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
                   : 'hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
-              Lịch Tuần (Weekly)
+              Tuần
             </button>
             <button
+              type="button"
               onClick={() => setViewMode('DAILY')}
-              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium transition-all ${
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
                 viewMode === 'DAILY'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
                   : 'hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
-              Lịch Ngày (Day)
+              Ngày
             </button>
             <button
+              type="button"
               onClick={() => setViewMode('MONTHLY')}
-              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium transition-all ${
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
                 viewMode === 'MONTHLY'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
                   : 'hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
-              Lịch Tháng (Monthly)
+              Tháng
             </button>
           </div>
 
           {/* Full Screen Weekly Calendar Button */}
           {viewMode === 'WEEKLY' && (
             <button
+              type="button"
               onClick={() => setIsFullScreenWeekly(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:opacity-90 transition shadow-2xs cursor-pointer"
-              title="Phóng to Lịch tuần toàn màn hình (Tự động ẩn thanh bên và các khối khác để lịch chiếm 100% diện tích)"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:opacity-90 transition shadow-2xs h-8"
+              title="Phóng to bảng lịch toàn màn hình"
             >
               <Maximize2 className="w-3.5 h-3.5" />
-              <span>Toàn màn hình</span>
+              <span className="hidden sm:inline">Toàn màn hình</span>
             </button>
           )}
         </div>
       </div>
 
       {/* Main Calendar View Content */}
-      {viewMode === 'WEEKLY' ? (
-        <WeeklyTimeline
-          data={weeklyData}
-          onPrevWeek={handlePrevWeek}
-          onNextWeek={handleNextWeek}
-          onToday={handleToday}
-          onSelectDay={(dateStr) => {
-            setSelectedDayDate(dateStr);
-            setViewMode('DAILY');
-          }}
-          onTaskClick={(t) => {
-            setTaskToEdit(t);
-            setIsTaskModalOpen(true);
-          }}
-          onToggleTask={handleToggleTask}
-          onAddTaskForDay={(dateStr) => handleAddTaskWithHour(dateStr)}
-          onQuickAddTask={handleQuickAddTask}
-          onDeleteTask={handleDeleteTaskWithUndo}
-          onEditSchedule={handleOpenEditFixedSchedule}
-          onDeleteSchedule={handleDeleteScheduleWithUndo}
-          onAddSchedule={handleOpenCreateFixedSchedule}
-          onAddTaskToSchedule={handleAddTaskToSchedule}
-          onAddNote={handleAddNote}
-          onDeleteNote={handleDeleteNote}
-        />
-      ) : viewMode === 'DAILY' ? (
-        <DailyTimeline
-          data={dailyData}
-          dateStr={selectedDayDate}
-          onBackToWeek={() => setViewMode('WEEKLY')}
-          onPrevDay={handlePrevDay}
-          onNextDay={handleNextDay}
-          onToday={handleTodayDay}
-          onTaskClick={(t) => {
-            setTaskToEdit(t);
-            setIsTaskModalOpen(true);
-          }}
-          onToggleTask={handleToggleTask}
-          onAddTask={(dateStr, hour) => handleAddTaskWithHour(dateStr, hour)}
-          onQuickAddTask={handleQuickAddTask}
-          onDeleteTask={handleDeleteTaskWithUndo}
-          onEditSchedule={handleOpenEditFixedSchedule}
-          onDeleteSchedule={handleDeleteScheduleWithUndo}
-          onAddSchedule={handleOpenCreateFixedSchedule}
-          onAddTaskToSchedule={handleAddTaskToSchedule}
-          onAddNote={handleAddNote}
-          onDeleteNote={handleDeleteNote}
-        />
-      ) : (
-        <MonthlyCalendar
-          data={monthlyData}
-          onPrevMonth={handlePrevMonth}
-          onNextMonth={handleNextMonth}
-          onSelectDay={(dateStr) => {
-            setSelectedDayDate(dateStr);
-            setViewMode('DAILY');
-          }}
-        />
-      )}
+      <div className="flex-1 min-h-0 flex flex-col">
+        {viewMode === 'WEEKLY' ? (
+          <WeeklyTimeline
+            data={weeklyData}
+            hideHeader={true}
+            onPrevWeek={handlePrevWeek}
+            onNextWeek={handleNextWeek}
+            onToday={handleToday}
+            onSelectDay={(dateStr) => {
+              setSelectedDayDate(dateStr);
+              setViewMode('DAILY');
+            }}
+            onTaskClick={(t) => {
+              setTaskToEdit(t);
+              setIsTaskModalOpen(true);
+            }}
+            onToggleTask={handleToggleTask}
+            onAddTaskForDay={(dateStr) => handleAddTaskWithHour(dateStr)}
+            onQuickAddTask={handleQuickAddTask}
+            onDeleteTask={handleDeleteTaskWithUndo}
+            onEditSchedule={handleOpenEditFixedSchedule}
+            onDeleteSchedule={handleDeleteScheduleWithUndo}
+            onAddSchedule={handleOpenCreateFixedSchedule}
+            onAddTaskToSchedule={handleAddTaskToSchedule}
+            onAddNote={handleAddNote}
+            onDeleteNote={handleDeleteNote}
+          />
+        ) : viewMode === 'DAILY' ? (
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <DailyTimeline
+              data={dailyData}
+              dateStr={selectedDayDate}
+              onBackToWeek={() => setViewMode('WEEKLY')}
+              onPrevDay={handlePrevDay}
+              onNextDay={handleNextDay}
+              onToday={handleTodayDay}
+              onTaskClick={(t) => {
+                setTaskToEdit(t);
+                setIsTaskModalOpen(true);
+              }}
+              onToggleTask={handleToggleTask}
+              onAddTask={(dateStr, hour) => handleAddTaskWithHour(dateStr, hour)}
+              onQuickAddTask={handleQuickAddTask}
+              onDeleteTask={handleDeleteTaskWithUndo}
+              onEditSchedule={handleOpenEditFixedSchedule}
+              onDeleteSchedule={handleDeleteScheduleWithUndo}
+              onAddSchedule={handleOpenCreateFixedSchedule}
+              onAddTaskToSchedule={handleAddTaskToSchedule}
+              onAddNote={handleAddNote}
+              onDeleteNote={handleDeleteNote}
+            />
+          </div>
+        ) : (
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <MonthlyCalendar
+              data={monthlyData}
+              onPrevMonth={handlePrevMonth}
+              onNextMonth={handleNextMonth}
+              onSelectDay={(dateStr) => {
+                setSelectedDayDate(dateStr);
+                setViewMode('DAILY');
+              }}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Modals */}
       <TaskModal
@@ -728,6 +759,7 @@ export const CalendarPage: React.FC = () => {
         onClose={() => {
           setIsScheduleModalOpen(false);
           setScheduleToEdit(null);
+          setScheduleDefaultDay(undefined);
         }}
         onSave={handleSaveFixedSchedule}
         onSaveBatch={handleSaveBatchFixedSchedules}
@@ -735,11 +767,14 @@ export const CalendarPage: React.FC = () => {
           handleDeleteScheduleWithUndo(id, scheduleToEdit?.title || 'Lịch cố định');
           setIsScheduleModalOpen(false);
           setScheduleToEdit(null);
+          setScheduleDefaultDay(undefined);
         }}
         scheduleToEdit={scheduleToEdit}
+        initialDayOfWeek={scheduleDefaultDay}
         onOpenSchoolPreset={() => {
           setIsScheduleModalOpen(false);
           setScheduleToEdit(null);
+          setScheduleDefaultDay(undefined);
           setIsSchoolPresetOpen(true);
         }}
       />
@@ -754,9 +789,9 @@ export const CalendarPage: React.FC = () => {
         isOpen={isManageSchedulesOpen}
         onClose={() => setIsManageSchedulesOpen(false)}
         schedules={allFixedSchedules}
-        onOpenCreate={() => {
+        onOpenCreate={(dayOfWeek?: number) => {
           setIsManageSchedulesOpen(false);
-          handleOpenCreateFixedSchedule();
+          handleOpenCreateFixedSchedule(dayOfWeek);
         }}
         onOpenEdit={(schedule) => {
           setIsManageSchedulesOpen(false);
@@ -771,16 +806,6 @@ export const CalendarPage: React.FC = () => {
           setIsManageSchedulesOpen(false);
           setIsSchoolPresetOpen(true);
         }}
-      />
-
-      <CountdownModal
-        isOpen={isCountdownModalOpen}
-        onClose={() => {
-          setIsCountdownModalOpen(false);
-          setCountdownToEdit(null);
-        }}
-        onSave={handleSaveCountdown}
-        countdownToEdit={countdownToEdit}
       />
 
       {/* Undo Toast Banner */}
@@ -812,6 +837,35 @@ export const CalendarPage: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 mr-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handlePrevWeek}
+                  title="Tuần trước"
+                  className="h-8 w-8"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleToday}
+                  className="h-8 text-xs font-semibold px-2.5"
+                >
+                  Tuần hiện tại
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleNextWeek}
+                  title="Tuần sau"
+                  className="h-8 w-8"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+
               <button
                 onClick={() => setIsFullScreenWeekly(false)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:opacity-90 transition shadow-sm cursor-pointer"
@@ -827,6 +881,7 @@ export const CalendarPage: React.FC = () => {
           <div className="flex-1 min-h-0">
             <WeeklyTimeline
               data={weeklyData}
+              hideHeader={true}
               onPrevWeek={handlePrevWeek}
               onNextWeek={handleNextWeek}
               onToday={handleToday}

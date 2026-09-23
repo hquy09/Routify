@@ -115,7 +115,7 @@ export function App() {
       />
 
       {/* 2. Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         {/* Top Header */}
         <Header
           onOpenSearch={() => setIsCommandOpen(true)}
@@ -131,8 +131,12 @@ export function App() {
 
         {/* Dynamic Page Views */}
         <main
-          className={`flex-1 p-4 md:p-6 overflow-y-auto w-full transition-all duration-300 ${
-            currentTab === 'calendar' || currentTab === 'dashboard' ? 'max-w-full' : 'max-w-7xl mx-auto'
+          className={`flex-1 w-full transition-all duration-300 ${
+            currentTab === 'calendar'
+              ? 'p-2 sm:p-3 max-w-full flex flex-col min-h-0 h-full overflow-hidden'
+              : currentTab === 'dashboard'
+              ? 'p-4 md:p-6 max-w-full overflow-y-auto'
+              : 'p-4 md:p-6 max-w-7xl mx-auto overflow-y-auto'
           }`}
         >
           {currentTab === 'calendar' && <CalendarPage />}

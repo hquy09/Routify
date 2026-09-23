@@ -41,6 +41,10 @@ class FixedScheduleBase(BaseModel):
 class FixedScheduleCreate(FixedScheduleBase):
     pass
 
+class BatchScheduleRequest(BaseModel):
+    schedules: List[FixedScheduleCreate]
+    replace_category: Optional[str] = None
+
 class FixedScheduleUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None

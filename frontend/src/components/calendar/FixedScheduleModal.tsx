@@ -14,6 +14,7 @@ interface FixedScheduleModalProps {
   onSaveBatch?: (schedules: Partial<FixedSchedule>[]) => Promise<void>;
   onDelete?: (id: number) => Promise<void>;
   scheduleToEdit?: FixedSchedule | null;
+  initialDayOfWeek?: number;
   onOpenSchoolPreset?: () => void;
 }
 
@@ -60,6 +61,7 @@ export const FixedScheduleModal: React.FC<FixedScheduleModalProps> = ({
   onSaveBatch,
   onDelete,
   scheduleToEdit,
+  initialDayOfWeek,
   onOpenSchoolPreset,
 }) => {
   const [title, setTitle] = useState('');
@@ -122,10 +124,11 @@ export const FixedScheduleModal: React.FC<FixedScheduleModalProps> = ({
         setCustomCategoryName(scheduleToEdit.category);
       }
     } else {
+      const defaultDay = initialDayOfWeek !== undefined ? initialDayOfWeek : 0;
       setTitle('');
       setDescription('');
-      setSingleDayOfWeek(0);
-      setSelectedDays([0]);
+      setSingleDayOfWeek(defaultDay);
+      setSelectedDays([defaultDay]);
       setStartTime('07:00');
       setEndTime('11:15');
       setCategory('SCHOOL');

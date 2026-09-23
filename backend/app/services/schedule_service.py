@@ -49,6 +49,25 @@ class ScheduleService:
         return schedule
 
     @classmethod
+    def create_batch_schedules(
+        cls,
+        db: Session,
+        schedules_in: List[FixedScheduleCreate],
+        replace_category: Optional[str] = None
+    ) -> List[FixedSchedule]:
+        if replace_category:
+            db.query(FixedSchedule).filter(FixedSchedule.category == replace_category).delete(synchronize_session=False)
+        created = []
+        for s_in in schedules_in:
+            s = FixedSchedule(**s_in.model_dump())
+            db.add(s)
+            created.append(s)
+        db.commit()
+        for s in created:
+            db.refresh(s)
+        return created
+
+    @classmethod
     def update_schedule(cls, db: Session, schedule_id: int, schedule_in: FixedScheduleUpdate) -> Optional[FixedSchedule]:
         schedule = db.query(FixedSchedule).filter(FixedSchedule.id == schedule_id).first()
         if not schedule:

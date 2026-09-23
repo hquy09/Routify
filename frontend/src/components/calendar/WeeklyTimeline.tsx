@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   ChevronLeft, ChevronRight, Calendar as CalendarIcon,
   CheckCircle2, AlertCircle, Clock, Plus, Flame, BookOpen,
-  MapPin, StickyNote, Trash2, ExternalLink, Flag, Edit2, CheckSquare
+  MapPin, Trash2, ExternalLink, Flag, Edit2, CheckSquare
 } from 'lucide-react';
 import {
   CalendarWeeklyResponse, CalendarDayView, Task,
@@ -30,10 +30,12 @@ interface WeeklyTimelineProps {
   onAddTaskToSchedule?: (scheduleId: number, dateStr: string, startTime: string, endTime: string) => void;
   onAddNote: (dateStr: string, content: string) => Promise<void>;
   onDeleteNote: (noteId: number) => Promise<void>;
+  hideHeader?: boolean;
 }
 
 export const WeeklyTimeline: React.FC<WeeklyTimelineProps> = ({
   data,
+  hideHeader = false,
   onPrevWeek,
   onNextWeek,
   onToday,
@@ -50,11 +52,6 @@ export const WeeklyTimeline: React.FC<WeeklyTimelineProps> = ({
   onAddNote,
   onDeleteNote,
 }) => {
-  const [activeNoteDay, setActiveNoteDay] = useState<string | null>(null);
-  const [noteInput, setNoteInput] = useState('');
-  const [quickTaskDay, setQuickTaskDay] = useState<string | null>(null);
-  const [quickTaskText, setQuickTaskText] = useState('');
-
   if (!data) {
     return (
       <div className="p-12 text-center text-slate-500 animate-pulse">
@@ -63,14 +60,6 @@ export const WeeklyTimeline: React.FC<WeeklyTimelineProps> = ({
     );
   }
 
-  const handleSaveNote = async (dateStr: string) => {
-    if (noteInput.trim()) {
-      await onAddNote(dateStr, noteInput.trim());
-      setNoteInput('');
-      setActiveNoteDay(null);
-    }
-  };
-
   const formatDateLabel = (dateStr: string) => {
     const parts = dateStr.split('-');
     if (parts.length < 3) return dateStr;
@@ -78,9 +67,10 @@ export const WeeklyTimeline: React.FC<WeeklyTimelineProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full space-y-4">
+    <div className="flex flex-col flex-1 min-h-0 h-full">
       {/* Week Header & Navigation */}
-      <div className="flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-xs">
+      {!hideHeader && (
+        <div className="flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-xs">
         <div className="flex items-center gap-2">
           <CalendarIcon className="w-5 h-5 text-neutral-900 dark:text-neutral-100" />
           <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">
@@ -126,10 +116,11 @@ export const WeeklyTimeline: React.FC<WeeklyTimelineProps> = ({
           </Button>
         </div>
       </div>
+      )}
 
       {/* 7-Day Grid Columns */}
-      <div className="flex-1 overflow-x-auto pb-2">
-        <div className="grid grid-cols-7 gap-3 min-w-[950px]">
+      <div className="flex-1 min-h-0 overflow-x-auto pb-1 flex flex-col">
+        <div className="grid grid-cols-7 gap-2.5 min-w-[950px] flex-1 min-h-0 h-full">
           {data.days.map((day) => {
             const todayStr = toLocalDateString();
             const isPast = day.date < todayStr;
@@ -138,7 +129,7 @@ export const WeeklyTimeline: React.FC<WeeklyTimelineProps> = ({
             return (
               <div
                 key={day.date}
-                className={`flex flex-col rounded-xl border p-2.5 min-w-[130px] transition-all shadow-xs ${
+                className={`flex flex-col rounded-xl border p-2 min-w-[130px] h-full min-h-0 transition-all shadow-xs ${
                   isToday
                     ? 'bg-white dark:bg-slate-900 border-neutral-900 dark:border-neutral-100 ring-2 ring-neutral-900/10 dark:ring-white/10 shadow-md'
                     : isPast
@@ -149,7 +140,7 @@ export const WeeklyTimeline: React.FC<WeeklyTimelineProps> = ({
                 {/* Day Header - Clickable for Day View */}
                 <div
                   onClick={() => onSelectDay(day.date)}
-                  className="pb-2 border-b border-slate-100 dark:border-slate-800 cursor-pointer group hover:bg-slate-50 dark:hover:bg-slate-800/50 p-1 -m-1 rounded-lg transition"
+                  className="shrink-0 pb-1.5 border-b border-slate-100 dark:border-slate-800 cursor-pointer group hover:bg-slate-50 dark:hover:bg-slate-800/50 p-1 -m-1 rounded-lg transition"
                   title="Nhấn để xem Lịch Ngày chi tiết (Day View)"
                 >
                   <div className="flex items-center justify-between">
@@ -206,31 +197,43 @@ export const WeeklyTimeline: React.FC<WeeklyTimelineProps> = ({
                 </div>
               </div>
 
-              {/* Day Content: Layers (Notes, Fixed Schedules, Tasks) */}
-              <div className="flex-1 py-2 space-y-2 overflow-y-auto max-h-[680px]">
-                {/* 1. LAYER: Notes */}
-                {day.notes.map((note) => (
-                  <div
-                    key={note.id}
-                    className="p-1.5 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-900 dark:bg-amber-950/20 dark:border-amber-900/40 dark:text-amber-300/90 flex items-start justify-between group shadow-2xs"
-                  >
-                    <span className="leading-tight">{note.content}</span>
-                    <button
-                      onClick={() => onDeleteNote(note.id)}
-                      className="opacity-0 group-hover:opacity-100 text-amber-600 hover:text-rose-600 dark:text-amber-500 dark:hover:text-rose-400 transition ml-1"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
+              {/* Day Content: 2 Compartments (Upper: Fixed Schedules & Notes | Lower: Tasks separated below) */}
+              <div className="flex-1 min-h-0 flex flex-col pt-1.5 gap-1.5">
+                {/* 1. TOP COMPARTMENT: Lịch Cố Định & Ghi Chú */}
+                <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                  <div className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase px-1 pb-1 flex items-center justify-between shrink-0">
+                    <span className="flex items-center gap-1 font-bold">
+                      <span>📅 Lịch cố định</span>
+                      <span className="font-mono text-[9px] px-1 rounded bg-slate-100 dark:bg-slate-800">
+                        {day.fixed_schedules.length}
+                      </span>
+                    </span>
                   </div>
-                ))}
 
-                {/* 2. LAYER: Fixed Schedules (Visually Distinct: Tinted block, category, no checkbox) */}
-                {day.fixed_schedules.length > 0 && (
-                  <div className="space-y-1.5">
-                    <div className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase px-1">
-                      Lịch cố định ({day.fixed_schedules.length})
-                    </div>
-                    {day.fixed_schedules.map((occ, idx) => {
+                  <div className="flex-1 min-h-0 overflow-y-auto pr-0.5 space-y-1.5 scrollbar-thin">
+                    {/* Notes if any */}
+                    {day.notes.map((note) => (
+                      <div
+                        key={note.id}
+                        className="p-1.5 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-900 dark:bg-amber-950/20 dark:border-amber-900/40 dark:text-amber-300/90 flex items-start justify-between group shadow-2xs"
+                      >
+                        <span className="leading-tight">{note.content}</span>
+                        <button
+                          onClick={() => onDeleteNote(note.id)}
+                          className="opacity-0 group-hover:opacity-100 text-amber-600 hover:text-rose-600 dark:text-amber-500 dark:hover:text-rose-400 transition ml-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+
+                    {/* Fixed Schedules list */}
+                    {day.fixed_schedules.length === 0 ? (
+                      <div className="py-6 text-center text-[10px] text-slate-400 dark:text-slate-600 italic">
+                        Không có lịch cố định
+                      </div>
+                    ) : (
+                      day.fixed_schedules.map((occ, idx) => {
                       const attachedTasks = day.tasks.filter(
                         (t) => t.scheduled_with_fixed_id === occ.fixed_schedule_id
                       );
@@ -377,26 +380,33 @@ export const WeeklyTimeline: React.FC<WeeklyTimelineProps> = ({
                           )}
                         </div>
                       );
-                    })}
-                  </div>
-                )}
+                    })
+                  )}
+                </div>
+              </div>
 
-                {/* 3. LAYER: Tasks */}
-                <div className="space-y-1.5">
-                  <div className="text-[10px] font-semibold tracking-wider text-slate-500 dark:text-slate-400 uppercase px-1 flex items-center justify-between">
-                    <span>Nhiệm vụ ({day.tasks.length})</span>
-                    <button
-                      onClick={() => onAddTaskForDay(day.date)}
-                      className="text-neutral-900 dark:text-neutral-100 hover:opacity-75 font-bold text-xs"
-                      title="Thêm task cho ngày này"
-                    >
-                      +
-                    </button>
-                  </div>
+              {/* 2. BOTTOM COMPARTMENT: Nhiệm vụ chia riêng ở dưới */}
+              <div className="flex-1 min-h-0 flex flex-col border-t-2 border-slate-200 dark:border-slate-800 pt-1.5 overflow-hidden">
+                <div className="text-[10px] font-semibold tracking-wider text-slate-500 dark:text-slate-400 uppercase px-1 pb-1 flex items-center justify-between shrink-0">
+                  <span className="flex items-center gap-1 font-bold">
+                    <span>📝 Nhiệm vụ</span>
+                    <span className="font-mono text-[9px] px-1 rounded bg-slate-100 dark:bg-slate-800">
+                      {day.tasks.length}
+                    </span>
+                  </span>
+                  <button
+                    onClick={() => onAddTaskForDay(day.date)}
+                    className="text-neutral-900 dark:text-neutral-100 hover:opacity-75 font-bold text-xs"
+                    title="Thêm task cho ngày này"
+                  >
+                    +
+                  </button>
+                </div>
 
+                <div className="flex-1 min-h-0 overflow-y-auto pr-0.5 space-y-1.5 scrollbar-thin">
                   {day.tasks.length === 0 ? (
-                    <div className="text-center py-4 text-[11px] text-slate-400 dark:text-slate-600">
-                      Trống
+                    <div className="py-6 text-center text-[10px] text-slate-400 dark:text-slate-600 italic">
+                      Chưa có nhiệm vụ
                     </div>
                   ) : (
                     day.tasks.map((t) => {
@@ -524,89 +534,11 @@ export const WeeklyTimeline: React.FC<WeeklyTimelineProps> = ({
                       );
                     })
                   )}
-
-                  {/* Inline quick add task */}
-                  {quickTaskDay === day.date ? (
-                    <form
-                      onSubmit={async (e) => {
-                        e.preventDefault();
-                        if (!quickTaskText.trim()) return;
-                        if (onQuickAddTask) {
-                          await onQuickAddTask(day.date, quickTaskText.trim());
-                        }
-                        setQuickTaskText('');
-                        setQuickTaskDay(null);
-                      }}
-                      className="pt-1 flex items-center gap-1"
-                    >
-                      <input
-                        autoFocus
-                        type="text"
-                        placeholder="Tên việc..."
-                        value={quickTaskText}
-                        onChange={(e) => setQuickTaskText(e.target.value)}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-1 text-[11px] text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-neutral-100"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => { setQuickTaskDay(null); setQuickTaskText(''); }}
-                        className="text-[10px] text-slate-400 hover:text-slate-600 px-0.5"
-                      >
-                        Hủy
-                      </button>
-                    </form>
-                  ) : (
-                    <button
-                      onClick={() => { setQuickTaskDay(day.date); setQuickTaskText(''); }}
-                      className="w-full py-1 text-center text-[10px] text-slate-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded transition font-medium border border-dashed border-slate-200 dark:border-slate-800/60"
-                    >
-                      + Thêm việc
-                    </button>
-                  )}
                 </div>
-
-                {/* Add Note Input toggle */}
-                {activeNoteDay === day.date ? (
-                  <div className="pt-2">
-                    <input
-                      type="text"
-                      autoFocus
-                      placeholder="Ghi chú trong ngày..."
-                      value={noteInput}
-                      onChange={(e) => setNoteInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSaveNote(day.date);
-                        else if (e.key === 'Escape') setActiveNoteDay(null);
-                      }}
-                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-1.5 text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-neutral-900 dark:focus:border-neutral-100 shadow-2xs"
-                    />
-                    <div className="flex justify-end gap-1 mt-1.5 text-[10px]">
-                      <button
-                        onClick={() => setActiveNoteDay(null)}
-                        className="px-2 py-0.5 text-slate-500 hover:text-slate-700 dark:text-slate-400"
-                      >
-                        Hủy
-                      </button>
-                      <button
-                        onClick={() => handleSaveNote(day.date)}
-                        className="px-2.5 py-0.5 bg-slate-900 dark:bg-slate-100 rounded-md text-white dark:text-slate-900 font-semibold shadow-xs hover:bg-slate-800 dark:hover:bg-slate-200"
-                      >
-                        Lưu
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setActiveNoteDay(day.date)}
-                    className="w-full text-left text-[10px] text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 py-1 px-1 transition flex items-center gap-1"
-                  >
-                    <StickyNote className="w-3 h-3 text-amber-500" />
-                    <span>+ Ghi chú</span>
-                  </button>
-                )}
               </div>
             </div>
-          );
+          </div>
+        );
         })}
         </div>
       </div>

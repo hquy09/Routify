@@ -104,3 +104,18 @@ def calibrate_burnout(course_id: int, db: Session = Depends(get_database)):
         return CourseService.calibrate_burnout(db, course_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/reset-all-ranks")
+def reset_all_ranks(db: Session = Depends(get_database)):
+    """Reset mastery points and levels of all courses to 0 / Level 1."""
+    count = CourseService.reset_all_course_mastery(db)
+    return {"message": f"Successfully reset mastery rank for {count} courses", "count": count}
+
+@router.post("/{course_id}/reset-mastery", response_model=CourseDetailOut)
+def reset_course_mastery(course_id: int, db: Session = Depends(get_database)):
+    """Reset mastery points and level of a specific course."""
+    course = CourseService.reset_course_mastery(db, course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    return CourseService.get_course_detail(db, course_id)
+

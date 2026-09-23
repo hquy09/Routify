@@ -159,6 +159,10 @@ export const api = {
       }),
     calibrateBurnout: (courseId: number) =>
       request<BurnoutCustomConfig>(`/courses/${courseId}/calibrate-burnout`, { method: 'POST' }),
+    resetMastery: (courseId: number) =>
+      request<Course>(`/courses/${courseId}/reset-mastery`, { method: 'POST' }),
+    resetAllRanks: () =>
+      request<{ message: string; count: number }>('/courses/reset-all-ranks', { method: 'POST' }),
   },
 
   // Mental Health & Global Wellbeing
@@ -329,16 +333,59 @@ export const api = {
         chat_id: string;
         is_enabled: boolean;
         reminder_minutes: number;
+        check_interval: number;
+        morning_briefing_enabled: boolean;
+        morning_briefing_time: string;
+        last_morning_briefing_date?: string;
+        include_philosophy: boolean;
+        notify_schedules: boolean;
+        notify_tasks: boolean;
+        bot_username?: string;
+        bot_first_name?: string;
       }>('/telegram/config'),
     saveConfig: (data: {
       bot_token?: string;
       chat_id?: string;
       is_enabled?: boolean;
       reminder_minutes?: number;
+      check_interval?: number;
+      morning_briefing_enabled?: boolean;
+      morning_briefing_time?: string;
+      include_philosophy?: boolean;
+      notify_schedules?: boolean;
+      notify_tasks?: boolean;
     }) =>
       request<{ message: string; config: any }>('/telegram/config', {
         method: 'POST',
         body: JSON.stringify(data),
+      }),
+    clearConfig: () =>
+      request<{ message: string; config: any }>('/telegram/clear', {
+        method: 'POST',
+      }),
+    getBotInfo: (botToken?: string) =>
+      request<{
+        ok: boolean;
+        bot?: {
+          id: number;
+          is_bot: boolean;
+          first_name: string;
+          username: string;
+          can_join_groups?: boolean;
+        };
+        error?: string;
+      }>(`/telegram/bot-info${botToken ? `?bot_token=${encodeURIComponent(botToken)}` : ''}`),
+    detectChatId: (botToken?: string) =>
+      request<{
+        ok: boolean;
+        chat_id: string;
+        first_name: string;
+        username?: string;
+        chat_type?: string;
+        latest_message?: string;
+      }>('/telegram/detect-chat-id', {
+        method: 'POST',
+        body: JSON.stringify(botToken ? { bot_token: botToken } : {}),
       }),
     test: (data?: { bot_token?: string; chat_id?: string }) =>
       request<{ message: string }>('/telegram/test', {
@@ -350,7 +397,11 @@ export const api = {
         method: 'POST',
       }),
     sendDailyBriefing: () =>
-      request<{ message: string }>('/telegram/daily-briefing', {
+      request<{ message: string }>('/telegram/morning-briefing', {
+        method: 'POST',
+      }),
+    sendMorningBriefing: () =>
+      request<{ message: string }>('/telegram/morning-briefing', {
         method: 'POST',
       }),
   },

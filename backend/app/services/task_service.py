@@ -75,7 +75,11 @@ class TaskService:
             subtask_progress=round(progress, 1),
             goal_title=task.goal.title if task.goal else None,
             project_title=task.project.title if task.project else None,
-            course_title=task.course_node.title if task.course_node else None,
+            course_title=(
+                f"{task.course_node.course.title}: {task.course_node.title}"
+                if (task.course_node and getattr(task.course_node, "course", None) and task.course_node.course.title)
+                else (task.course_node.title if task.course_node else None)
+            ),
             scheduled_with_fixed_title=f"{task.scheduled_with_fixed.icon or '📌'} {task.scheduled_with_fixed.title}" if task.scheduled_with_fixed else None,
             transferred_from_title=transferred_title,
             transferred_from_date=transferred_date
@@ -88,7 +92,7 @@ class TaskService:
             joinedload(Task.attachments),
             joinedload(Task.goal),
             joinedload(Task.project),
-            joinedload(Task.course_node),
+            joinedload(Task.course_node).joinedload(CourseNode.course),
             joinedload(Task.scheduled_with_fixed),
             joinedload(Task.transferred_from)
         ).filter(Task.id == task_id).first()
@@ -116,7 +120,7 @@ class TaskService:
             joinedload(Task.attachments),
             joinedload(Task.goal),
             joinedload(Task.project),
-            joinedload(Task.course_node),
+            joinedload(Task.course_node).joinedload(CourseNode.course),
             joinedload(Task.scheduled_with_fixed),
             joinedload(Task.transferred_from)
         )

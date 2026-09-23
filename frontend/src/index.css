@@ -149,3 +149,102 @@ html:not(.dark) textarea:focus {
 .animate-pinned-aura {
   animation: pinnedAuraPulse 2.4s ease-in-out infinite;
 }
+
+/* ==========================================================================
+   RANK CONTINUOUS RADIATING AURA & ENERGY EFFECTS
+   ========================================================================== */
+
+/* Continuous outward radiant pulse wave (Khí toả ra liên tục) */
+@keyframes rankAuraRadiate {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.75;
+    filter: blur(8px);
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 0.4;
+    filter: blur(16px);
+  }
+  100% {
+    transform: scale(1.18);
+    opacity: 0;
+    filter: blur(24px);
+  }
+}
+
+/* Second staggered radiating wave for continuous emission */
+@keyframes rankAuraRadiateOuter {
+  0% {
+    transform: scale(0.96);
+    opacity: 0.6;
+    filter: blur(12px);
+  }
+  60% {
+    transform: scale(1.12);
+    opacity: 0.25;
+    filter: blur(20px);
+  }
+  100% {
+    transform: scale(1.28);
+    opacity: 0;
+    filter: blur(32px);
+  }
+}
+
+/* Continuous vapor/mist undulating flow */
+@keyframes rankVaporFlow {
+  0%, 100% {
+    transform: translateY(0px) scale(1) rotate(0deg);
+    opacity: 0.65;
+  }
+  33% {
+    transform: translateY(-4px) scale(1.03) rotate(1deg);
+    opacity: 0.85;
+  }
+  66% {
+    transform: translateY(3px) scale(0.98) rotate(-1deg);
+    opacity: 0.55;
+  }
+}
+
+/* Continuous glowing border beam rotation */
+@keyframes rankBeamRotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Flickering energy flame aura */
+@keyframes rankFlameShimmer {
+  0%, 100% {
+    filter: brightness(1) drop-shadow(0 0 10px var(--aura-color, rgba(245, 158, 11, 0.5)));
+  }
+  50% {
+    filter: brightness(1.25) drop-shadow(0 0 22px var(--aura-color, rgba(245, 158, 11, 0.85)));
+  }
+}
+
+.animate-rank-radiate-1 {
+  animation: rankAuraRadiate 2.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+}
+
+.animate-rank-radiate-2 {
+  animation: rankAuraRadiateOuter 2.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite 1.4s;
+}
+
+.animate-rank-vapor {
+  animation: rankVaporFlow 4s ease-in-out infinite;
+}
+
+.animate-rank-beam {
+  animation: rankBeamRotate 5s linear infinite;
+}
+
+.animate-rank-flame {
+  animation: rankFlameShimmer 2s ease-in-out infinite;
+}
+

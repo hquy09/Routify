@@ -481,7 +481,7 @@ export const CourseBurnoutModal: React.FC<CourseBurnoutModalProps> = ({
                   {tensionDetails.isHighTension && (
                     <div className="mt-3 p-2.5 rounded-xl bg-rose-500/10 dark:bg-rose-500/20 border border-rose-300 dark:border-rose-800/60 flex items-center gap-2 text-xs text-rose-700 dark:text-rose-300 animate-pulse">
                       <Flame className="w-4 h-4 text-rose-600 shrink-0" />
-                      <span>Cảnh báo: Kéo mức chịu tải lên trên 7.5 giờ sẽ gây tích tụ axit lactic nhận thức và làm sụt giảm khả năng ghi nhớ dài hạn.</span>
+                      <span>Cảnh báo: Kéo mức học lên trên 7.5 giờ mỗi ngày dễ khiến não bộ kiệt sức và làm sụt giảm khả năng ghi nhớ dài hạn. Hãy dành thời gian nghỉ ngơi hợp lý.</span>
                     </div>
                   )}
                 </div>

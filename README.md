@@ -1,8 +1,12 @@
-# Routify / LifeOS - Nền Tảng Quản Lý Năng Suất & Lộ Trình Học Tập Cá Nhân
+# Routify / LifeOS (Beta) - Nền Tảng Quản Lý Năng Suất & Lộ Trình Học Tập Cá Nhân
 
 Routify (LifeOS) là một hệ thống web cục bộ (Local-first Web Application) toàn diện, kết hợp quản lý thời gian, lộ trình khóa học, nhiệm vụ hằng ngày, mục tiêu đếm ngược và kiểm soát tải nhận thức chống kiệt sức (Burnout).
 
 Hệ thống hoạt động theo nguyên tắc **Privacy by Design**: toàn bộ dữ liệu lưu trữ trực tiếp trên máy tính cá nhân của người dùng, không phụ thuộc máy chủ bên ngoài và có khả năng vận hành hoàn toàn Offline.
+
+> [!NOTE]
+> **Lưu ý về phiên bản thử nghiệm (Beta):**  
+> Dự án hiện đang trong giai đoạn phát triển **Beta**, do đó có thể phát sinh một số lỗi hoặc hành vi chưa hoàn thiện trong quá trình sử dụng. Rất mong nhận được sự thông cảm và đóng góp ý kiến, phản hồi báo lỗi từ cộng đồng qua mục **Issues** trên GitHub để dự án ngày càng hoàn thiện hơn.
 
 ---
 

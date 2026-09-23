@@ -8,6 +8,7 @@ import { WeeklyReview } from '../../types';
 import { api } from '../../services/api';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { isMentalHealthEnabled, isDigitalWellbeingEnabled } from '../../utils/featureFlags';
 
 interface WeeklyReviewModalProps {
   isOpen: boolean;
@@ -34,6 +35,15 @@ export const WeeklyReviewModal: React.FC<WeeklyReviewModalProps> = ({
   const [finalizing, setFinalizing] = useState(false);
   const [copiedToast, setCopiedToast] = useState(false);
   const [autoDraftToast, setAutoDraftToast] = useState(false);
+  const [isMentalHealthOn, setIsMentalHealthOn] = useState<boolean>(() => isMentalHealthEnabled());
+  const [isDigitalWellbeingOn, setIsDigitalWellbeingOn] = useState<boolean>(() => isDigitalWellbeingEnabled());
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsMentalHealthOn(isMentalHealthEnabled());
+      setIsDigitalWellbeingOn(isDigitalWellbeingEnabled());
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -86,7 +96,7 @@ export const WeeklyReviewModal: React.FC<WeeklyReviewModalProps> = ({
 - **Nhất quán:** ${review.consistency_score}/10 (Độ ổn định: ${review.stability_pct}%)
 - **Bất khả kháng:** ${review.force_majeure_count} ca bảo lưu (85% điểm) • ${review.unexcused_delay_count} ca trì hoãn chủ quan
 - **Thời lượng số:** ${review.study_work_screentime_hours}h học/việc • ${review.entertainment_screentime_hours}h xao nhãng
-- **Tải nhận thức:** ${review.avg_daily_focus_hours}h/ngày (${review.burnout_risk_level})
+- **Áp lực & Tinh thần:** ${review.avg_daily_focus_hours}h/ngày (${review.burnout_risk_level})
 
 ---
 ### 📝 2. Phản tư & Chiến lược (Strategic Reflection)
@@ -199,7 +209,7 @@ ${nextWeekChanges || review.draft_next_week_changes || '(Chưa điền)'}
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 {review?.start_date && review?.end_date
                   ? `Chu kỳ tuần: ${review.start_date} – ${review.end_date}`
-                  : `Đánh giá toàn diện năng suất, tính kỷ luật và sức khỏe nhận thức.`}
+                  : `Đánh giá toàn diện năng suất, tính kỷ luật và sức khỏe tinh thần.`}
               </p>
             </div>
           </div>
@@ -348,56 +358,92 @@ ${nextWeekChanges || review.draft_next_week_changes || '(Chưa điền)'}
               </div>
 
               {/* Card 3: Cognitive Load & Wellbeing */}
-              <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-between shadow-xs">
+              <div className={`p-4 rounded-2xl flex flex-col justify-between shadow-xs transition-all ${
+                isMentalHealthOn
+                  ? 'border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900'
+                  : 'border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/40 text-slate-400 dark:text-slate-500'
+              }`}>
                 <div>
-                  <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                  <div className="flex items-center justify-between text-xs mb-1">
                     <span className="font-semibold flex items-center gap-1.5">
-                      <HeartPulse className="w-3.5 h-3.5 text-rose-500" />
-                      <span>Tải Nhận Thức</span>
+                      <HeartPulse className={`w-3.5 h-3.5 ${isMentalHealthOn ? 'text-rose-500' : 'text-slate-400 dark:text-slate-500'}`} />
+                      <span className={isMentalHealthOn ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400 dark:text-slate-500'}>
+                        Áp Lực & Tinh Thần
+                      </span>
                     </span>
-                    <span className="text-[10px] font-bold">
-                      {review.burnout_risk_level === 'BURNOUT_RISK' ? '🚨 Quá tải' : review.burnout_risk_level === 'MODERATE' ? '⚡ Căng thẳng' : '✅ Tối ưu'}
-                    </span>
+                    {isMentalHealthOn ? (
+                      <span className="text-[10px] font-bold">
+                        {review.burnout_risk_level === 'BURNOUT_RISK' ? '🚨 Quá tải' : review.burnout_risk_level === 'MODERATE' ? '⚡ Căng thẳng' : '✅ Tối ưu'}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500 font-medium">
+                        Đang tắt
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-baseline gap-1.5 mt-2">
-                    <span className="text-2xl font-black font-mono tracking-tight text-slate-900 dark:text-slate-100">
-                      {review.avg_daily_focus_hours?.toFixed(1) || '0.0'}h
+                    <span className={`text-2xl font-black font-mono tracking-tight ${
+                      isMentalHealthOn ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400 dark:text-slate-600'
+                    }`}>
+                      {isMentalHealthOn ? `${review.avg_daily_focus_hours?.toFixed(1) || '0.0'}h` : '---'}
                     </span>
-                    <span className="text-xs text-slate-500 font-semibold">/ ngày</span>
+                    {isMentalHealthOn && <span className="text-xs text-slate-500 font-semibold">/ ngày</span>}
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Mức độ tập trung trung bình hàng ngày
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
+                    {isMentalHealthOn ? 'Thời gian học & làm việc trung bình hàng ngày' : 'Tính năng quản lý sức khỏe tinh thần đã được tắt'}
                   </p>
                 </div>
-                <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800 text-[10px] text-slate-400">
-                  Giữ nhịp sinh học và ngủ đủ giấc
+                <div className={`pt-2 mt-2 border-t text-[10px] text-slate-400 ${
+                  isMentalHealthOn ? 'border-slate-100 dark:border-slate-800' : 'border-dashed border-slate-200 dark:border-slate-800'
+                }`}>
+                  {isMentalHealthOn ? 'Giữ nhịp sinh học và ngủ đủ giấc' : 'Có thể bật lại trong Cài đặt hoặc trang Sức khỏe'}
                 </div>
               </div>
 
               {/* Card 4: Digital Balance Screentime */}
-              <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-between shadow-xs">
+              <div className={`p-4 rounded-2xl flex flex-col justify-between shadow-xs transition-all ${
+                isDigitalWellbeingOn
+                  ? 'border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900'
+                  : 'border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/40 text-slate-400 dark:text-slate-500'
+              }`}>
                 <div>
-                  <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                  <div className="flex items-center justify-between text-xs mb-1">
                     <span className="font-semibold flex items-center gap-1.5">
-                      <Smartphone className="w-3.5 h-3.5 text-sky-500" />
-                      <span>Cân Bằng Số</span>
+                      <Smartphone className={`w-3.5 h-3.5 ${isDigitalWellbeingOn ? 'text-sky-500' : 'text-slate-400 dark:text-slate-500'}`} />
+                      <span className={isDigitalWellbeingOn ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400 dark:text-slate-500'}>
+                        Cân Bằng Số
+                      </span>
                     </span>
-                    <span className="text-[10px] font-mono text-slate-500">
-                      {review.total_screentime_hours}h tổng
-                    </span>
+                    {isDigitalWellbeingOn ? (
+                      <span className="text-[10px] font-mono text-slate-500">
+                        {review.total_screentime_hours}h tổng
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500 font-medium">
+                        Đang tắt
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-baseline gap-1.5 mt-2">
-                    <span className="text-2xl font-black font-mono tracking-tight text-indigo-600 dark:text-indigo-400">
-                      {review.study_work_screentime_hours?.toFixed(1) || '0.0'}h
+                    <span className={`text-2xl font-black font-mono tracking-tight ${
+                      isDigitalWellbeingOn ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-600'
+                    }`}>
+                      {isDigitalWellbeingOn ? `${review.study_work_screentime_hours?.toFixed(1) || '0.0'}h` : '---'}
                     </span>
-                    <span className="text-xs text-slate-500 font-semibold">học & việc</span>
+                    {isDigitalWellbeingOn && <span className="text-xs text-slate-500 font-semibold">học & việc</span>}
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Giải trí: {review.entertainment_screentime_hours}h ({review.screentime_violations_count} lần vượt)
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
+                    {isDigitalWellbeingOn
+                      ? `Giải trí: ${review.entertainment_screentime_hours}h (${review.screentime_violations_count} lần vượt)`
+                      : 'Tính năng quản lý cân bằng số đã được tắt'}
                   </p>
                 </div>
-                <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800 text-[10px] text-slate-400">
-                  {review.screentime_violations_count === 0 ? '✓ Tuyệt đối tuân thủ hạn mức' : 'Cần giảm thời gian mạng xã hội'}
+                <div className={`pt-2 mt-2 border-t text-[10px] text-slate-400 ${
+                  isDigitalWellbeingOn ? 'border-slate-100 dark:border-slate-800' : 'border-dashed border-slate-200 dark:border-slate-800'
+                }`}>
+                  {isDigitalWellbeingOn
+                    ? review.screentime_violations_count === 0 ? '✓ Tuyệt đối tuân thủ hạn mức' : 'Cần giảm thời gian mạng xã hội'
+                    : 'Có thể bật lại trong Cài đặt'}
                 </div>
               </div>
             </div>

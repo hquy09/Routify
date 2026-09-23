@@ -162,7 +162,7 @@ export const SystemLegendModal: React.FC<SystemLegendModalProps> = ({ isOpen, on
           {activeTab === 'DIFFICULTY' && (
             <div className="space-y-3">
               <p className="text-slate-600 dark:text-slate-400 text-xs">
-                Độ khó (1 đến 5 ngọn lửa 🔥) đại diện cho khối lượng nhận thức & độ phức tạp. Khi hoàn thành task, bạn nhận được <strong>số điểm EXP tương ứng</strong> tích lũy vào Dashboard:
+                Độ khó (1 đến 5 ngọn lửa 🔥) đại diện cho khối lượng công việc & độ phức tạp. Khi hoàn thành task, bạn nhận được <strong>số điểm EXP tương ứng</strong> tích lũy vào Dashboard:
               </p>
               <div className="space-y-2">
                 {[1, 2, 3, 4, 5].map((lvl) => {

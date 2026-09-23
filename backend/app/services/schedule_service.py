@@ -23,11 +23,19 @@ def times_overlap(start1: str, end1: str, start2: str, end2: str) -> bool:
 class ScheduleService:
     @classmethod
     def get_schedule_by_id(cls, db: Session, schedule_id: int) -> Optional[FixedSchedule]:
-        return db.query(FixedSchedule).options(joinedload(FixedSchedule.occurrences)).filter(FixedSchedule.id == schedule_id).first()
+        return db.query(FixedSchedule).options(
+            joinedload(FixedSchedule.occurrences),
+            joinedload(FixedSchedule.course),
+            joinedload(FixedSchedule.course_node)
+        ).filter(FixedSchedule.id == schedule_id).first()
 
     @classmethod
     def list_schedules(cls, db: Session, is_active: Optional[bool] = None) -> List[FixedSchedule]:
-        query = db.query(FixedSchedule).options(joinedload(FixedSchedule.occurrences))
+        query = db.query(FixedSchedule).options(
+            joinedload(FixedSchedule.occurrences),
+            joinedload(FixedSchedule.course),
+            joinedload(FixedSchedule.course_node)
+        )
         if is_active is not None:
             query = query.filter(FixedSchedule.is_active == is_active)
         return query.order_by(FixedSchedule.day_of_week, FixedSchedule.start_time).all()
@@ -103,7 +111,11 @@ class ScheduleService:
         dow = target_date.weekday()
 
         # Query all active fixed schedules matching this day of week
-        schedules = db.query(FixedSchedule).options(joinedload(FixedSchedule.occurrences)).filter(
+        schedules = db.query(FixedSchedule).options(
+            joinedload(FixedSchedule.occurrences),
+            joinedload(FixedSchedule.course),
+            joinedload(FixedSchedule.course_node)
+        ).filter(
             FixedSchedule.is_active == True,
             FixedSchedule.day_of_week == dow
         ).all()
@@ -147,7 +159,11 @@ class ScheduleService:
                 end_time=end_t,
                 location=sched.location,
                 status=status_label,
-                is_overridden=is_overridden
+                is_overridden=is_overridden,
+                course_id=sched.course_id,
+                course_title=sched.course.title if sched.course else None,
+                course_node_id=sched.course_node_id,
+                course_node_title=sched.course_node.title if sched.course_node else None
             ))
 
         # Sort by start_time

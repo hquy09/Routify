@@ -11,6 +11,7 @@ import {
   fetchCategoryTypes,
   getCategoryTypeConfig,
 } from '../utils/categoryTypes';
+import { isDigitalWellbeingEnabled, setDigitalWellbeingEnabled } from '../utils/featureFlags';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
@@ -49,7 +50,9 @@ export const ScreenTimePage: React.FC = () => {
         fetchCategoryTypes(),
         api.dashboard.getHeaderSummary().catch(() => null),
       ]);
-      setIsEnabled(statusRes?.enabled ?? true);
+      const isStatusOn = statusRes?.enabled ?? true;
+      setIsEnabled(isStatusOn);
+      setDigitalWellbeingEnabled(isStatusOn);
       setOverview(data);
       setCategoryTypes(types);
       if (hs) {
@@ -78,6 +81,7 @@ export const ScreenTimePage: React.FC = () => {
     try {
       const res = await api.screentime.toggle(targetState);
       setIsEnabled(res.enabled);
+      setDigitalWellbeingEnabled(res.enabled);
       setIsConfirmToggleModalOpen(false);
 
       if (!targetState) {
@@ -103,9 +107,16 @@ export const ScreenTimePage: React.FC = () => {
         setCategoryTypes(e.detail);
       }
     };
+    const handleDigitalUpdated = (e: any) => {
+      if (typeof e.detail?.enabled === 'boolean') {
+        setIsEnabled(e.detail.enabled);
+      }
+    };
     window.addEventListener('lifeos_category_types_updated', handleTypesUpdated);
+    window.addEventListener('lifeos_digital_wellbeing_updated', handleDigitalUpdated);
     return () => {
       window.removeEventListener('lifeos_category_types_updated', handleTypesUpdated);
+      window.removeEventListener('lifeos_digital_wellbeing_updated', handleDigitalUpdated);
     };
   }, []);
 
@@ -298,27 +309,32 @@ export const ScreenTimePage: React.FC = () => {
       </div>
 
       {!isEnabled ? (
-        <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-8 sm:p-12 text-center shadow-xs flex flex-col items-center justify-center max-w-xl mx-auto my-6 space-y-5">
-          <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 shadow-inner">
+        <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/60 rounded-3xl p-8 sm:p-12 text-center shadow-xs flex flex-col items-center justify-center max-w-xl mx-auto my-6 space-y-5 animate-in fade-in">
+          <div className="w-16 h-16 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 shadow-inner">
             <Smartphone className="w-8 h-8" />
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-              Quản lý Sức khoẻ Kỹ thuật số hiện đang TẮT
-            </h3>
+            <div className="flex items-center justify-center gap-2">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                Quản lý Sức khoẻ Kỹ thuật số hiện đang TẮT
+              </h3>
+              <Badge variant="secondary" className="border border-dashed border-slate-400 dark:border-slate-600 text-slate-500 font-mono text-[10px]">
+                TẠM DỪNG
+              </Badge>
+            </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-md">
-              Tính năng theo dõi thời gian sử dụng màn hình và chấm điểm kỷ luật đã được tắt. Toàn bộ dữ liệu của phân hệ này đã được xóa sạch (reset về 0).
+              Tính năng theo dõi thời gian sử dụng màn hình và chấm điểm kỷ luật đã được tắt.
             </p>
           </div>
 
-          <div className="p-3.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 rounded-xl text-xs text-amber-800 dark:text-amber-300 text-left space-y-1 w-full max-w-md">
-            <span className="font-semibold flex items-center gap-1.5">
-              <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
-              Bảo toàn dữ liệu hệ thống:
+          <div className="p-3.5 bg-slate-100/90 dark:bg-slate-800/80 border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl text-xs text-slate-600 dark:text-slate-300 text-left space-y-1.5 w-full max-w-md">
+            <span className="font-semibold flex items-center gap-1.5 text-slate-800 dark:text-slate-200">
+              <Shield className="w-4 h-4 text-slate-400 shrink-0" />
+              Chỉ báo trạng thái trực quan:
             </span>
-            <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed">
-              Chỉ có dữ liệu ghi nhận màn hình bị đặt lại. Toàn bộ <strong>Nhiệm vụ (Tasks), Khóa học, Lịch trình, Mục tiêu... hoàn toàn an toàn và được giữ nguyên 100%</strong>.
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+              Chỉ số <strong>Kỷ luật / Nhất quán trên thanh Topbar</strong> và thẻ <strong>Cân bằng số trong Weekly Report</strong> đang hiển thị <span className="underline decoration-dashed font-semibold">màu xám với viền nét đứt</span> thể hiện tính năng đang tạm dừng.
             </p>
           </div>
 
@@ -327,9 +343,9 @@ export const ScreenTimePage: React.FC = () => {
             size="lg"
             onClick={() => executeToggle(true)}
             disabled={isToggling}
-            className="gap-2 px-6"
+            className="gap-2 px-6 shadow-sm"
           >
-            <Power className="w-4 h-4 text-emerald-400" />
+            <Power className="w-4 h-4 text-emerald-300" />
             <span>{isToggling ? 'Đang kích hoạt...' : 'Bật lại Quản lý Sức khoẻ Kỹ thuật số'}</span>
           </Button>
         </div>

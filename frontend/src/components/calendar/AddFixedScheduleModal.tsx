@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { X, Calendar as CalendarIcon, Clock, MapPin, Tag } from 'lucide-react';
-import { FixedSchedule } from '../../types';
+import React, { useState, useEffect } from 'react';
+import { X, Calendar as CalendarIcon, Clock, MapPin, Tag, BookOpen } from 'lucide-react';
+import { FixedSchedule, Course, CourseNode } from '../../types';
 import { Button } from '../ui/button';
+import { api } from '../../services/api';
 
 interface AddFixedScheduleModalProps {
   isOpen: boolean;
@@ -27,11 +28,26 @@ export const AddFixedScheduleModal: React.FC<AddFixedScheduleModalProps> = ({
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [customCategoryName, setCustomCategoryName] = useState('');
 
-  // Reset custom category on modal close/open
-  React.useEffect(() => {
+  // Course linkage state
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [courseNodes, setCourseNodes] = useState<CourseNode[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<number | undefined>(undefined);
+  const [selectedCourseNodeId, setSelectedCourseNodeId] = useState<number | undefined>(undefined);
+
+  // Load courses & nodes when modal opens
+  useEffect(() => {
     if (!isOpen) {
       setIsCustomCategory(false);
       setCustomCategoryName('');
+      setSelectedCourseId(undefined);
+      setSelectedCourseNodeId(undefined);
+    } else {
+      Promise.all([api.courses.list(), api.courses.getAllNodes()])
+        .then(([cList, nList]) => {
+          setCourses(cList || []);
+          setCourseNodes(nList || []);
+        })
+        .catch((err) => console.warn('Failed to load courses in AddFixedScheduleModal:', err));
     }
   }, [isOpen]);
 
@@ -54,6 +70,8 @@ export const AddFixedScheduleModal: React.FC<AddFixedScheduleModalProps> = ({
         location: location.trim() || undefined,
         repeat_rule: 'WEEKLY',
         is_active: true,
+        course_id: selectedCourseId || undefined,
+        course_node_id: selectedCourseNodeId || undefined,
       });
       onClose();
     } finally {
@@ -202,6 +220,61 @@ export const AddFixedScheduleModal: React.FC<AddFixedScheduleModalProps> = ({
               />
             </div>
           )}
+
+          {/* Linked Course & Lesson */}
+          <div className="p-3 rounded-xl border border-emerald-200/80 dark:border-emerald-800/60 bg-emerald-50/40 dark:bg-emerald-950/20 space-y-2.5">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+              <BookOpen className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Gán với Khóa học / Môn học (Tùy chọn)</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Khóa học:
+                </label>
+                <select
+                  value={selectedCourseId || ''}
+                  onChange={(e) => {
+                    const val = e.target.value ? Number(e.target.value) : undefined;
+                    setSelectedCourseId(val);
+                    setSelectedCourseNodeId(undefined);
+                  }}
+                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-1.5 text-xs text-slate-900 dark:text-slate-100"
+                >
+                  <option value="">-- Không gán khóa học --</option>
+                  {courses.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      📚 {c.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Bài học / Tiết học:
+                </label>
+                <select
+                  value={selectedCourseNodeId || ''}
+                  disabled={!selectedCourseId || courseNodes.filter((n) => n.course_id === selectedCourseId).length === 0}
+                  onChange={(e) => setSelectedCourseNodeId(e.target.value ? Number(e.target.value) : undefined)}
+                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-1.5 text-xs text-slate-900 dark:text-slate-100 disabled:opacity-50"
+                >
+                  <option value="">
+                    {!selectedCourseId
+                      ? '-- Chọn khóa trước --'
+                      : courseNodes.filter((n) => n.course_id === selectedCourseId).length === 0
+                      ? '-- Chưa có bài học --'
+                      : '-- Chọn bài học (tùy chọn) --'}
+                  </option>
+                  {courseNodes.filter((n) => n.course_id === selectedCourseId).map((l) => (
+                    <option key={l.id} value={l.id}>
+                      📖 {l.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
 
           <div>
             <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Địa điểm / Nền tảng (Tùy chọn)</label>

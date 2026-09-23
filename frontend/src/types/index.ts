@@ -264,6 +264,10 @@ export interface FixedSchedule {
   icon?: string;
   location?: string | null;
   is_active: boolean;
+  course_id?: number | null;
+  course_title?: string | null;
+  course_node_id?: number | null;
+  course_node_title?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -280,6 +284,10 @@ export interface ScheduleOccurrenceView {
   location?: string;
   status: 'NORMAL' | 'SKIPPED' | 'MODIFIED';
   is_overridden: boolean;
+  course_id?: number | null;
+  course_title?: string | null;
+  course_node_id?: number | null;
+  course_node_title?: string | null;
 }
 
 export interface CalendarNote {

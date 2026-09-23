@@ -6,7 +6,7 @@ import {
   Radio, RotateCcw, XCircle, Key, Layers, Edit3, Trash2,
   Plus, FolderPlus, X, User, Sliders, Send, Bell, Sparkles,
   ExternalLink, Eye, EyeOff, Shield, Zap, Search, Volume2,
-  VolumeX, Moon, Sun, Clock, Star, ArrowUpRight
+  VolumeX, Moon, Sun, Clock, Star, ArrowUpRight, BookOpen, Terminal
 } from 'lucide-react';
 import { api } from '../services/api';
 import { Button } from '../components/ui/button';
@@ -23,10 +23,20 @@ import {
   isCourseGamificationEnabled,
   setCourseGamificationEnabled,
   COURSE_RANK_TIERS,
+  getCourseMasteryInfo,
+  getTopCourseMastery,
 } from '../utils/courseGamification';
-import { Swords } from 'lucide-react';
+import {
+  isMentalHealthEnabled,
+  setMentalHealthEnabled,
+  isDigitalWellbeingEnabled,
+  setDigitalWellbeingEnabled,
+  isRankOnTopbarEnabled,
+  setRankOnTopbarEnabled,
+} from '../utils/featureFlags';
+import { Swords, HeartPulse, Smartphone, Trophy, Crown, Flame } from 'lucide-react';
 
-type SettingsTabId = 'GENERAL' | 'NOTIFICATIONS' | 'SCREENTIME' | 'ADVANCED' | 'BACKUP' | 'DANGER';
+type SettingsTabId = 'GENERAL' | 'NOTIFICATIONS' | 'SCREENTIME' | 'MASTERY_RANKS' | 'ADVANCED' | 'BACKUP' | 'DANGER';
 
 interface SearchIndexItem {
   id: string;
@@ -41,7 +51,9 @@ const SEARCH_INDEX: SearchIndexItem[] = [
   { id: 'theme', title: 'Giao diện Sáng / Tối (Theme)', tab: 'GENERAL', tabName: 'Chung', keywords: ['theme', 'tối', 'sáng', 'dark', 'light', 'màu sắc'] },
   { id: 'task-defaults', title: 'Quy chuẩn & Độ khó mặc định', tab: 'GENERAL', tabName: 'Chung', keywords: ['độ khó', 'ưu tiên', 'priority', 'difficulty', 'task', 'nhiệm vụ'] },
   { id: 'work-hours', title: 'Khung giờ sinh hoạt & Học tập', tab: 'GENERAL', tabName: 'Chung', keywords: ['giờ', 'khung giờ', 'bắt đầu', 'kết thúc', 'thời gian'] },
-  { id: 'gamification', title: 'Hệ thống Cày Cuốc & Danh Hiệu Khóa Học', tab: 'GENERAL', tabName: 'Chung', keywords: ['cày cuốc', 'rank', 'chiến thần', 'tuyệt đối', 'kinh nghiệm', 'exp', 'gamification', 'khóa học'] },
+  { id: 'mental-health', title: 'Quản lý Sức khỏe Tinh thần & Mức độ Căng thẳng', tab: 'GENERAL', tabName: 'Chung', keywords: ['sức khỏe', 'tinh thần', 'áp lực', 'căng thẳng', 'mental', 'stress', 'sức khoẻ', 'tắt bật'] },
+  { id: 'digital-wellbeing', title: 'Chỉ số Kỷ luật & Cân bằng số', tab: 'GENERAL', tabName: 'Chung', keywords: ['cân bằng số', 'screentime', 'nhất quán', 'digital wellbeing', 'kỷ luật'] },
+  { id: 'gamification', title: 'Hệ thống Cày Cuốc & 11 Cấp Bậc Danh Hiệu', tab: 'MASTERY_RANKS', tabName: 'Danh Hiệu & Rank', keywords: ['cày cuốc', 'rank', 'chiến thần', 'tuyệt đối', 'kinh nghiệm', 'exp', 'gamification', 'khóa học', 'danh hiệu', 'thần thoại', 'hào quang', 'topbar'] },
   { id: 'telegram', title: 'Bot Telegram & Nhắc nhở', tab: 'NOTIFICATIONS', tabName: 'Thông báo', keywords: ['telegram', 'bot', 'token', 'chat id', 'nhắc nhở', 'thông báo'] },
   { id: 'sound-alert', title: 'Âm thanh thông báo', tab: 'NOTIFICATIONS', tabName: 'Thông báo', keywords: ['âm thanh', 'sound', 'chuông', 'tiếng'] },
   { id: 'browser-notif', title: 'Thông báo trên trình duyệt (Web Push)', tab: 'NOTIFICATIONS', tabName: 'Thông báo', keywords: ['trình duyệt', 'browser', 'web', 'push', 'thông báo'] },
@@ -82,11 +94,60 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
 
   // Course Gamification & EXP Mastery System (Default: OFF)
   const [courseGamificationEnabled, setCourseGamificationEnabledState] = useState<boolean>(() => isCourseGamificationEnabled());
+  const [showRankOnTopbar, setShowRankOnTopbar] = useState<boolean>(() => isRankOnTopbarEnabled());
+  const [coursesList, setCoursesList] = useState<any[]>([]);
 
   const handleToggleCourseGamification = () => {
     const next = !courseGamificationEnabled;
     setCourseGamificationEnabledState(next);
     setCourseGamificationEnabled(next);
+  };
+
+  const handleToggleRankOnTopbar = () => {
+    const next = !showRankOnTopbar;
+    setShowRankOnTopbar(next);
+    setRankOnTopbarEnabled(next);
+  };
+
+  const [isResettingRanks, setIsResettingRanks] = useState(false);
+  const handleResetAllRanks = async () => {
+    if (window.confirm('Bạn có chắc chắn muốn đặt lại điểm EXP và Rank của toàn bộ khóa học về 0 (Tập sự)? Bài học và lịch trình vẫn giữ nguyên.')) {
+      try {
+        setIsResettingRanks(true);
+        const res = await api.courses.resetAllRanks();
+        alert(`Đã đặt lại dữ liệu Rank cho ${res.count} khóa học về 0 EXP.`);
+        api.courses.list().then(setCoursesList).catch(() => {});
+        window.dispatchEvent(new CustomEvent('lifeos_courses_updated'));
+      } catch (err) {
+        console.error('Failed to reset all ranks:', err);
+        alert('Không thể đặt lại dữ liệu Rank.');
+      } finally {
+        setIsResettingRanks(false);
+      }
+    }
+  };
+
+  // Mental Health & Cognitive Load (Default: ON)
+  const [mentalHealthEnabled, setMentalHealthEnabledState] = useState<boolean>(() => isMentalHealthEnabled());
+
+  const handleToggleMentalHealth = () => {
+    const next = !mentalHealthEnabled;
+    setMentalHealthEnabledState(next);
+    setMentalHealthEnabled(next);
+  };
+
+  // Digital Wellbeing & Screentime (Default: ON)
+  const [digitalWellbeingEnabled, setDigitalWellbeingEnabledState] = useState<boolean>(() => isDigitalWellbeingEnabled());
+
+  const handleToggleDigitalWellbeing = async () => {
+    const next = !digitalWellbeingEnabled;
+    setDigitalWellbeingEnabledState(next);
+    setDigitalWellbeingEnabled(next);
+    try {
+      await api.screentime.toggle(next);
+    } catch (err) {
+      console.error('Failed to toggle backend screentime:', err);
+    }
   };
 
   // Sound & Browser Notification
@@ -141,23 +202,76 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
     chat_id: string;
     is_enabled: boolean;
     reminder_minutes: number;
+    check_interval?: number;
+    morning_briefing_enabled?: boolean;
+    morning_briefing_time?: string;
+    include_philosophy?: boolean;
+    notify_schedules?: boolean;
+    notify_tasks?: boolean;
+    bot_username?: string;
+    bot_first_name?: string;
   }>({
     has_token: false,
     masked_token: '',
     chat_id: '',
     is_enabled: false,
     reminder_minutes: 15,
+    check_interval: 60,
+    morning_briefing_enabled: true,
+    morning_briefing_time: '05:00',
+    include_philosophy: true,
+    notify_schedules: true,
+    notify_tasks: true,
   });
   const [tgBotTokenInput, setTgBotTokenInput] = useState('');
   const [showTgToken, setShowTgToken] = useState(false);
   const [tgChatIdInput, setTgChatIdInput] = useState('');
   const [tgIsEnabled, setTgIsEnabled] = useState(false);
   const [tgReminderMinutes, setTgReminderMinutes] = useState(15);
+  const [tgCheckInterval, setTgCheckInterval] = useState(60);
+  const [tgMorningBriefingEnabled, setTgMorningBriefingEnabled] = useState(true);
+  const [tgMorningBriefingTime, setTgMorningBriefingTime] = useState('05:00');
+  const [tgIncludePhilosophy, setTgIncludePhilosophy] = useState(true);
+  const [tgNotifySchedules, setTgNotifySchedules] = useState(true);
+  const [tgNotifyTasks, setTgNotifyTasks] = useState(true);
+  const [tgBotUsername, setTgBotUsername] = useState('');
+  const [isDetectingChatId, setIsDetectingChatId] = useState(false);
+  const [detectedUser, setDetectedUser] = useState<{
+    chat_id: string;
+    first_name: string;
+    username?: string;
+  } | null>(null);
   const [isSavingTg, setIsSavingTg] = useState(false);
   const [isTestingTg, setIsTestingTg] = useState(false);
   const [isBriefingTg, setIsBriefingTg] = useState(false);
   const [isCheckingUpcomingTg, setIsCheckingUpcomingTg] = useState(false);
+  const [isValidatingToken, setIsValidatingToken] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const listeningRef = useRef(false);
+  const logContainerRef = useRef<HTMLDivElement>(null);
+  const [tgLogs, setTgLogs] = useState<Array<{ id: string; time: string; text: string; type: 'info' | 'success' | 'warn' | 'error' }>>([
+    { id: '1', time: new Date().toLocaleTimeString(), text: 'Hệ thống sẵn sàng. Nhập Token hoặc bấm Listening để bắt đầu.', type: 'info' }
+  ]);
   const [tgFeedback, setTgFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const cleanTelegramToken = (raw: string): string => {
+    if (!raw) return '';
+    const match = raw.match(/(\d{8,12}:[A-Za-z0-9_-]{25,50})/);
+    if (match) return match[1];
+    const fallback = raw.match(/(\d+:[A-Za-z0-9_-]{20,})/);
+    if (fallback) return fallback[1];
+    return raw.trim();
+  };
+
+  const addTgLog = (text: string, type: 'info' | 'success' | 'warn' | 'error' = 'info') => {
+    const time = new Date().toLocaleTimeString();
+    setTgLogs(prev => [...prev.slice(-60), { id: `${Date.now()}-${Math.random()}`, time, text, type }]);
+  };
+
+  useEffect(() => {
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
+  }, [tgLogs]);
 
   // Advanced Discipline Scoring Config
   const [disciplineConfig, setDisciplineConfig] = useState<DisciplineRatingConfig>({
@@ -175,7 +289,7 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
 
   const loadSettingsData = async () => {
     try {
-      const [status, bkps, gdrive, hist, allSettings, limits, types, telegramConf, discConfig] = await Promise.all([
+      const [status, bkps, gdrive, hist, allSettings, limits, types, telegramConf, discConfig, coursesData, screentimeStatus] = await Promise.all([
         api.settings.getDbStatus(),
         api.settings.listBackups(),
         api.settings.getGoogleDriveStatus(),
@@ -185,6 +299,8 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
         fetchCategoryTypes(),
         api.telegram.getConfig(),
         api.screentime.getDisciplineConfig().catch(() => null),
+        api.courses.list().catch(() => []),
+        api.screentime.getStatus().catch(() => null),
       ]);
       setDbStatus(status);
       setBackups(bkps);
@@ -192,6 +308,13 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
       setSyncHistory(hist);
       setCategories(limits);
       setCategoryTypes(types);
+      if (Array.isArray(coursesData)) {
+        setCoursesList(coursesData);
+      }
+      if (screentimeStatus && typeof screentimeStatus.enabled === 'boolean') {
+        setDigitalWellbeingEnabledState(screentimeStatus.enabled);
+        setDigitalWellbeingEnabled(screentimeStatus.enabled);
+      }
       if (discConfig) {
         setDisciplineConfig(discConfig);
       }
@@ -200,6 +323,21 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
         setTgChatIdInput(telegramConf.chat_id || '');
         setTgIsEnabled(telegramConf.is_enabled);
         setTgReminderMinutes(telegramConf.reminder_minutes || 15);
+        setTgCheckInterval(telegramConf.check_interval || 60);
+        setTgMorningBriefingEnabled(telegramConf.morning_briefing_enabled !== false);
+        setTgMorningBriefingTime(telegramConf.morning_briefing_time || '05:00');
+        setTgIncludePhilosophy(telegramConf.include_philosophy !== false);
+        setTgNotifySchedules(telegramConf.notify_schedules !== false);
+        setTgNotifyTasks(telegramConf.notify_tasks !== false);
+        if (telegramConf.bot_username) {
+          setTgBotUsername(telegramConf.bot_username);
+        } else if (telegramConf.has_token) {
+          api.telegram.getBotInfo().then((res) => {
+            if (res.ok && res.bot?.username) {
+              setTgBotUsername(res.bot.username);
+            }
+          }).catch(() => {});
+        }
       }
       if (allSettings.default_difficulty) setDefaultDifficulty(allSettings.default_difficulty);
       if (allSettings.default_priority) setDefaultPriority(allSettings.default_priority);
@@ -333,18 +471,189 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
         chat_id: tgChatIdInput.trim(),
         is_enabled: tgIsEnabled,
         reminder_minutes: Number(tgReminderMinutes),
+        check_interval: Number(tgCheckInterval),
+        morning_briefing_enabled: tgMorningBriefingEnabled,
+        morning_briefing_time: tgMorningBriefingTime,
+        include_philosophy: tgIncludePhilosophy,
+        notify_schedules: tgNotifySchedules,
+        notify_tasks: tgNotifyTasks,
       };
-      if (tgBotTokenInput.trim()) {
-        payload.bot_token = tgBotTokenInput.trim();
+      const cleaned = cleanTelegramToken(tgBotTokenInput);
+      if (cleaned) {
+        payload.bot_token = cleaned;
       }
       const res = await api.telegram.saveConfig(payload);
       setTgConfig(res.config);
       setTgBotTokenInput('');
-      setTgFeedback({ type: 'success', text: 'Đã lưu cấu hình Telegram thành công!' });
+      if (res.config?.bot_username) {
+        setTgBotUsername(res.config.bot_username);
+      }
+      setTgFeedback({ type: 'success', text: 'Đã lưu cài đặt Telegram thành công!' });
+      addTgLog('✓ Đã lưu cài đặt Telegram vào hệ thống.', 'success');
+      window.dispatchEvent(new CustomEvent('lifeos_telegram_updated'));
     } catch (err: any) {
       setTgFeedback({ type: 'error', text: err?.message || 'Lỗi khi lưu cấu hình Telegram' });
+      addTgLog(`Lỗi khi lưu cấu hình: ${err?.message || err}`, 'error');
     } finally {
       setIsSavingTg(false);
+    }
+  };
+
+  const handleVerifyToken = async (tokenToCheck?: string) => {
+    const raw = tokenToCheck !== undefined ? tokenToCheck : tgBotTokenInput;
+    const token = cleanTelegramToken(raw);
+    if (!token && !tgConfig.has_token) {
+      addTgLog('Chưa có Bot Token để xác thực.', 'warn');
+      return;
+    }
+    setIsValidatingToken(true);
+    addTgLog('🔍 Đang kiểm tra Bot Token với Telegram API...', 'info');
+    try {
+      const res = await api.telegram.getBotInfo(token || undefined);
+      if (res.ok && res.bot) {
+        setTgBotUsername(res.bot.username);
+        addTgLog(`✓ Xác thực thành công: @${res.bot.username} (${res.bot.first_name})`, 'success');
+        addTgLog('👉 Bấm "Listening để Bind ID" rồi gửi tin nhắn cho Bot trên Telegram.', 'info');
+      } else {
+        addTgLog(`Xác thực thất bại: ${res.error || 'Token không chính xác'}`, 'error');
+      }
+    } catch (err: any) {
+      addTgLog(`Lỗi kết nối tới Telegram: ${err?.message || 'Không thể truy cập API'}`, 'error');
+    } finally {
+      setIsValidatingToken(false);
+    }
+  };
+
+  const startListening = async () => {
+    if (isListening) return;
+    setIsListening(true);
+    listeningRef.current = true;
+    const tokenToUse = cleanTelegramToken(tgBotTokenInput) || undefined;
+
+    addTgLog('📡 Bắt đầu Listening. Đang quét tin nhắn...', 'info');
+    if (tgBotUsername) {
+      addTgLog(`👉 Mở Telegram: https://t.me/${tgBotUsername} bấm [Start] hoặc gửi 1 tin nhắn bất kỳ.`, 'info');
+    } else {
+      addTgLog('👉 Hãy mở Bot trên Telegram và bấm [Start] hoặc gửi tin nhắn bất kỳ.', 'info');
+    }
+
+    let attempts = 0;
+    const maxAttempts = 30; // 60s total
+
+    const checkLoop = async () => {
+      if (!listeningRef.current) return;
+      attempts++;
+
+      try {
+        const res = await api.telegram.detectChatId(tokenToUse);
+        if (res.ok && res.chat_id) {
+          listeningRef.current = false;
+          setIsListening(false);
+          setTgChatIdInput(res.chat_id);
+          setDetectedUser({
+            chat_id: res.chat_id,
+            first_name: res.first_name,
+            username: res.username,
+          });
+          addTgLog(`🟢 Đã nhận tin nhắn từ: ${res.first_name}${res.username ? ` (@${res.username})` : ''} (ID: ${res.chat_id})`, 'success');
+          addTgLog('🔗 Đang tự động lưu Chat ID và kích hoạt thông báo...', 'info');
+
+          // Auto-save and activate
+          const saveRes = await api.telegram.saveConfig({
+            chat_id: res.chat_id,
+            is_enabled: true,
+            bot_token: tokenToUse,
+            reminder_minutes: Number(tgReminderMinutes),
+            check_interval: Number(tgCheckInterval),
+            morning_briefing_enabled: tgMorningBriefingEnabled,
+            morning_briefing_time: tgMorningBriefingTime,
+            include_philosophy: tgIncludePhilosophy,
+            notify_schedules: tgNotifySchedules,
+            notify_tasks: tgNotifyTasks,
+          });
+          setTgConfig(saveRes.config);
+          setTgIsEnabled(true);
+          if (saveRes.config?.bot_username) {
+            setTgBotUsername(saveRes.config.bot_username);
+          }
+          addTgLog('✅ Bind Chat ID thành công! Bot Telegram hiện đã được KÍCH HOẠT.', 'success');
+          window.dispatchEvent(new CustomEvent('lifeos_telegram_updated'));
+          return;
+        } else if (attempts % 5 === 0) {
+          addTgLog(`⏳ Đang chờ tin nhắn từ bạn... (${attempts}/${maxAttempts})`, 'info');
+        }
+      } catch (e: any) {
+        // Silently wait next attempt
+      }
+
+      if (attempts >= maxAttempts) {
+        listeningRef.current = false;
+        setIsListening(false);
+        addTgLog('⏱️ Hết thời gian chờ (60s). Hãy gửi tin nhắn cho Bot rồi bấm Listening để thử lại.', 'warn');
+      } else if (listeningRef.current) {
+        setTimeout(checkLoop, 2000);
+      }
+    };
+
+    setTimeout(checkLoop, 1000);
+  };
+
+  const stopListening = () => {
+    listeningRef.current = false;
+    setIsListening(false);
+    addTgLog('Đã dừng chế độ Listening.', 'warn');
+  };
+
+  const handleClearTelegram = async () => {
+    if (!confirm('Bạn có chắc chắn muốn xóa cấu hình Bot Telegram và ngắt kết nối?')) return;
+    addTgLog('🗑️ Đang xóa kết nối Telegram...', 'warn');
+    try {
+      await api.telegram.clearConfig();
+      setTgBotTokenInput('');
+      setTgChatIdInput('');
+      setTgIsEnabled(false);
+      setTgBotUsername('');
+      setDetectedUser(null);
+      setTgConfig({
+        has_token: false,
+        masked_token: '',
+        chat_id: '',
+        is_enabled: false,
+        reminder_minutes: 15,
+        check_interval: 60,
+        morning_briefing_enabled: true,
+        morning_briefing_time: '05:00',
+        include_philosophy: true,
+        notify_schedules: true,
+        notify_tasks: true,
+      });
+      addTgLog('Đã xóa cấu hình kết nối Telegram thành công.', 'success');
+      window.dispatchEvent(new CustomEvent('lifeos_telegram_updated'));
+    } catch (err: any) {
+      addTgLog(`Lỗi khi xóa cấu hình: ${err?.message || err}`, 'error');
+    }
+  };
+
+  const handleDetectChatId = async () => {
+    setIsDetectingChatId(true);
+    addTgLog('Đang kiểm tra tin nhắn gần nhất tới Bot...', 'info');
+    setTgFeedback(null);
+    try {
+      const tokenToUse = tgBotTokenInput.trim() || undefined;
+      const res = await api.telegram.detectChatId(tokenToUse);
+      if (res.ok && res.chat_id) {
+        setTgChatIdInput(res.chat_id);
+        setDetectedUser({
+          chat_id: res.chat_id,
+          first_name: res.first_name,
+          username: res.username,
+        });
+        addTgLog(`Tìm thấy: ${res.first_name} • Chat ID: ${res.chat_id}`, 'success');
+      }
+    } catch (err: any) {
+      addTgLog(`Chưa thấy tin nhắn: ${err?.message || 'Hãy gửi tin nhắn vào Bot'}`, 'warn');
+    } finally {
+      setIsDetectingChatId(false);
     }
   };
 
@@ -675,6 +984,13 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
       icon: Sliders,
       badge: `${categories.length}`,
       desc: 'Định mức thời gian, nhóm phân loại',
+    },
+    {
+      id: 'MASTERY_RANKS' as SettingsTabId,
+      label: 'Danh Hiệu & Cày Cuốc',
+      icon: Swords,
+      badge: courseGamificationEnabled ? 'BẬT' : undefined,
+      desc: '11 Bậc Rank, hào quang động, EXP, cài đặt Topbar',
     },
     {
       id: 'ADVANCED' as SettingsTabId,
@@ -1010,75 +1326,100 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
                 </div>
               </div>
 
-              {/* 1.5 Course Gamification & EXP Mastery (Toggle: Default OFF) */}
-              <div id="gamification" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-4 shadow-xs">
+              {/* 1.5 Mental Health & Cognitive Load Toggle */}
+              <div id="mental-health" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-4 shadow-xs">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-200">
-                    <Swords className="w-4 h-4 text-amber-500" />
-                    <span>Chế độ Cày Cuốc & Hệ Thống Danh Hiệu Khóa Học</span>
+                    <HeartPulse className="w-4 h-4 text-rose-500" />
+                    <span>Quản lý Sức khỏe Tinh thần & Mức độ Căng thẳng</span>
                   </div>
                   <Badge
-                    variant={courseGamificationEnabled ? 'success' : 'secondary'}
-                    className="text-[10px]"
+                    variant={mentalHealthEnabled ? 'success' : 'secondary'}
+                    className={`text-[10px] ${!mentalHealthEnabled ? 'border-dashed border-slate-300 dark:border-slate-700 text-slate-500' : ''}`}
                   >
-                    {courseGamificationEnabled ? 'ĐANG BẬT' : 'MẶC ĐỊNH: TẮT'}
+                    {mentalHealthEnabled ? 'ĐANG BẬT' : 'ĐANG TẮT'}
                   </Badge>
                 </div>
 
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Kích hoạt thanh kinh nghiệm (EXP), 10 cấp bậc danh hiệu (từ Tập Sự đến Chiến Thần và Tuyệt Đối Thần Vương) và hiệu ứng thăng hạng cho từng khóa học khi bạn hoàn thành bài học.
+                  Theo dõi áp lực học tập, nguy cơ kiệt sức (burnout), điều hòa nhịp sinh học và tự động phân luồng bài học cân bằng.
                 </p>
 
                 <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
                   <div className="pr-4">
                     <span className="font-semibold text-slate-800 dark:text-slate-200 block text-xs">
-                      Bật tính năng Cày Cuốc & EXP Rank
+                      Bật tính năng Quản lý Sức khỏe Tinh thần
                     </span>
                     <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                      Khi bật, mỗi bài học hoàn thành sẽ cộng từ 15–70 EXP với đường cong độ khó lũy tiến. Khi tắt, giao diện khóa học quay về phong cách tối giản thanh lịch.
+                      Khi tắt, chỉ số Áp lực & Sức khỏe tinh thần trên thanh Topbar và trong Báo cáo tuần (Weekly Report) sẽ hiển thị màu xám với viền nét đứt thể hiện trạng thái tạm dừng theo dõi.
                     </span>
                   </div>
                   <button
                     type="button"
-                    onClick={handleToggleCourseGamification}
+                    onClick={handleToggleMentalHealth}
                     className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 cursor-pointer shrink-0 ${
-                      courseGamificationEnabled ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-700'
+                      mentalHealthEnabled ? 'bg-rose-500' : 'bg-slate-300 dark:bg-slate-700'
                     }`}
                   >
                     <div
                       className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
-                        courseGamificationEnabled ? 'translate-x-5' : 'translate-x-0'
+                        mentalHealthEnabled ? 'translate-x-5' : 'translate-x-0'
                       }`}
                     />
                   </button>
                 </div>
 
-                {/* 10 Tiers Preview Grid */}
-                <div className="space-y-2 pt-1">
-                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-                    Bảng 10 Cấp bậc Danh Hiệu (Mastery Ranks):
-                  </span>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
-                    {COURSE_RANK_TIERS.map((tier) => (
-                      <div
-                        key={tier.level}
-                        className={`p-2.5 rounded-lg border flex flex-col justify-between ${tier.bgColor} ${tier.borderColor} transition hover:scale-102`}
-                      >
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="text-base">{tier.icon}</span>
-                          <span className="text-[9px] font-mono font-bold opacity-70">Lv.{tier.level}</span>
-                        </div>
-                        <div className="mt-1">
-                          <div className={`font-bold text-[11px] truncate ${tier.badgeClass}`}>
-                            {tier.title}
-                          </div>
-                          <div className="text-[9px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
-                            {tier.min_xp.toLocaleString()} EXP+
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                {!mentalHealthEnabled && (
+                  <div className="p-3 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 text-xs flex items-center gap-2">
+                    <HeartPulse className="w-4 h-4 shrink-0 text-slate-400" />
+                    <span>
+                      Đang ở chế độ tắt: Topbar và Weekly Report sẽ thể hiện viền nét đứt màu xám. Bạn có thể bật lại bất cứ lúc nào.
+                    </span>
                   </div>
+                )}
+              </div>
+
+              {/* 1.7 Digital Wellbeing & Screentime Consistency Toggle */}
+              <div id="digital-wellbeing" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-4 shadow-xs">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-200">
+                    <Smartphone className="w-4 h-4 text-emerald-500" />
+                    <span>Quản lý Kỷ luật & Cân bằng Kỹ thuật số (Digital Wellbeing)</span>
+                  </div>
+                  <Badge
+                    variant={digitalWellbeingEnabled ? 'success' : 'secondary'}
+                    className={`text-[10px] ${!digitalWellbeingEnabled ? 'border-dashed border-slate-300 dark:border-slate-700 text-slate-500' : ''}`}
+                  >
+                    {digitalWellbeingEnabled ? 'ĐANG BẬT' : 'ĐANG TẮT'}
+                  </Badge>
+                </div>
+
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Giám sát thời gian sử dụng thiết bị (Screentime), định mức ứng dụng và tính toán Chỉ số Nhất quán & Kỷ luật.
+                </p>
+
+                <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+                  <div className="pr-4">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 block text-xs">
+                      Bật tính năng Cân bằng Kỹ thuật số & Kỷ luật
+                    </span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Khi tắt, chỉ số Nhất quán trên thanh Topbar và thẻ Cân bằng số trong Báo cáo tuần sẽ hiển thị màu xám với viền nét đứt.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleToggleDigitalWellbeing}
+                    className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 cursor-pointer shrink-0 ${
+                      digitalWellbeingEnabled ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'
+                    }`}
+                  >
+                    <div
+                      className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
+                        digitalWellbeingEnabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
                 </div>
               </div>
             </div>
@@ -1089,139 +1430,359 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
             <div className="space-y-5 animate-in fade-in-50 duration-200">
               {/* Telegram Bot Card */}
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-4 shadow-xs relative overflow-hidden">
-                <div className="flex flex-wrap items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 gap-2">
+                {/* Header & Master Toggle */}
+                <div className="flex flex-wrap items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 gap-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-xs">
                       <Send className="w-4 h-4" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                          Thông báo Bot Telegram & Lịch sắp đến
+                          Bot Telegram & Thông Báo
                         </span>
-                        <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-                          <Sparkles className="w-2.5 h-2.5 text-amber-500 animate-pulse" />
-                          Tự động nhắc nhở
-                        </span>
+                        {tgBotUsername && (
+                          <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                            @{tgBotUsername}
+                          </span>
+                        )}
                       </div>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        Nhận tin nhắn trên điện thoại khi sắp đến tiết học, ca làm việc hoặc hạn chót nhiệm vụ
+                        Nhắc lịch học, ca trực, nhiệm vụ và báo cáo sáng trên điện thoại
                       </p>
                     </div>
                   </div>
-                  <Badge variant={tgConfig.is_enabled ? 'success' : 'outline'} className="gap-1 font-semibold">
-                    {tgConfig.is_enabled ? 'Đang hoạt động (ON)' : 'Đang tắt'}
-                  </Badge>
-                </div>
 
-                {/* Feedback Alert */}
-                {tgFeedback && (
-                  <div
-                    className={`p-3 rounded-lg text-xs flex items-center gap-2 ${
-                      tgFeedback.type === 'success'
-                        ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                        : 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
-                    }`}
-                  >
-                    {tgFeedback.type === 'success' ? (
-                      <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    ) : (
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                    )}
-                    <span>{tgFeedback.text}</span>
-                  </div>
-                )}
+                  <div className="flex items-center gap-2.5">
+                    <Badge variant={tgConfig.is_enabled ? 'success' : 'outline'} className="text-[10px] py-0.5">
+                      {tgConfig.is_enabled ? 'Đang bật' : 'Đang tắt'}
+                    </Badge>
 
-                {/* Form fields */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                  {/* Bot Token */}
-                  <div className="space-y-1.5">
-                    <label className="font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                      <span>Telegram Bot Token:</span>
-                      {tgConfig.has_token && (
-                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-normal">
-                          ✓ Đã lưu ({tgConfig.masked_token})
-                        </span>
-                      )}
-                    </label>
-                    <div className="relative">
-                      <Input
-                        type={showTgToken ? 'text' : 'password'}
-                        value={tgBotTokenInput}
-                        onChange={(e) => setTgBotTokenInput(e.target.value)}
-                        placeholder={tgConfig.has_token ? 'Nhập token mới nếu muốn thay đổi...' : 'VD: 7123456789:AAH...'}
-                        className="text-xs pr-9 font-mono"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowTgToken(!showTgToken)}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                        title={showTgToken ? 'Ẩn token' : 'Xem token'}
-                      >
-                        {showTgToken ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Chat ID */}
-                  <div className="space-y-1.5">
-                    <label className="font-semibold text-slate-700 dark:text-slate-300 block">
-                      Chat ID người nhận:
-                    </label>
-                    <Input
-                      type="text"
-                      value={tgChatIdInput}
-                      onChange={(e) => setTgChatIdInput(e.target.value)}
-                      placeholder="VD: 123456789 (chat cá nhân hoặc group)"
-                      className="text-xs font-mono"
-                    />
-                  </div>
-
-                  {/* Reminder Minutes */}
-                  <div className="space-y-1.5">
-                    <label className="font-semibold text-slate-700 dark:text-slate-300 block">
-                      Thời gian nhắc nhở trước sự kiện:
-                    </label>
-                    <select
-                      value={tgReminderMinutes}
-                      onChange={(e) => setTgReminderMinutes(Number(e.target.value))}
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-slate-100 text-xs"
-                    >
-                      <option value={5}>5 phút trước khi bắt đầu</option>
-                      <option value={10}>10 phút trước khi bắt đầu</option>
-                      <option value={15}>15 phút trước khi bắt đầu (Chuẩn)</option>
-                      <option value={30}>30 phút trước khi bắt đầu</option>
-                      <option value={60}>1 tiếng trước khi bắt đầu</option>
-                    </select>
-                  </div>
-
-                  {/* Enable Switch */}
-                  <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/20">
-                    <div>
-                      <span className="font-semibold text-slate-800 dark:text-slate-200 block">
-                        Kích hoạt Bot thông báo
-                      </span>
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                        Tự động quét và gửi tin nhắn mỗi 60 giây khi có lịch sắp tới.
-                      </span>
-                    </div>
                     <button
                       type="button"
                       onClick={() => setTgIsEnabled(!tgIsEnabled)}
-                      className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 cursor-pointer ${
+                      className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
                         tgIsEnabled ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
                       }`}
+                      title={tgIsEnabled ? 'Nhấn để tắt' : 'Nhấn để bật'}
                     >
                       <div
-                        className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
-                          tgIsEnabled ? 'translate-x-5' : 'translate-x-0'
+                        className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                          tgIsEnabled ? 'translate-x-4' : 'translate-x-0'
                         }`}
                       />
                     </button>
                   </div>
                 </div>
 
-                {/* Telegram Action Buttons */}
+                {/* Token & Chat ID Inputs */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  {/* Bot Token */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="font-medium text-slate-700 dark:text-slate-300">
+                        Bot Token:
+                      </label>
+                      {tgConfig.has_token && (
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                          ✓ Đã lưu ({tgConfig.masked_token})
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-1.5">
+                      <div className="relative flex-1">
+                        <Input
+                          type={showTgToken ? 'text' : 'password'}
+                          value={tgBotTokenInput}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            const cleaned = cleanTelegramToken(raw);
+                            setTgBotTokenInput(cleaned);
+                            if (cleaned.includes(':') && cleaned.length >= 35) {
+                              handleVerifyToken(cleaned);
+                            }
+                          }}
+                          onPaste={(e) => {
+                            const pasted = e.clipboardData.getData('text');
+                            const cleaned = cleanTelegramToken(pasted);
+                            if (cleaned && cleaned.includes(':') && cleaned.length >= 35) {
+                              e.preventDefault();
+                              setTgBotTokenInput(cleaned);
+                              handleVerifyToken(cleaned);
+                            }
+                          }}
+                          placeholder={tgConfig.has_token ? 'Nhập token mới nếu đổi...' : '8876142819:AAH...'}
+                          className="text-xs pr-8 font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowTgToken(!showTgToken)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        >
+                          {showTgToken ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleVerifyToken()}
+                        disabled={isValidatingToken}
+                        className="text-xs shrink-0 px-2.5"
+                        title="Kiểm tra token với Telegram API"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isValidatingToken ? 'animate-spin text-blue-600' : ''}`} />
+                        <span className="ml-1 hidden sm:inline">Kiểm tra</span>
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Chat ID */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="font-medium text-slate-700 dark:text-slate-300">
+                        Chat ID:
+                      </label>
+                      {detectedUser && (
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                          ✓ {detectedUser.first_name}
+                        </span>
+                      )}
+                    </div>
+                    <Input
+                      type="text"
+                      value={tgChatIdInput}
+                      onChange={(e) => setTgChatIdInput(e.target.value)}
+                      placeholder="Bấm Listening để bind tự động..."
+                      className="text-xs font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Connection Controls: Listening, Open Bot, Delete */}
+                <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Listening button */}
+                    <Button
+                      type="button"
+                      variant={isListening ? 'outline' : 'primary'}
+                      size="sm"
+                      onClick={isListening ? stopListening : startListening}
+                      className={`text-xs font-semibold ${
+                        isListening
+                          ? 'border-amber-500 text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-950/30'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      }`}
+                    >
+                      <Radio className={`w-3.5 h-3.5 mr-1.5 ${isListening ? 'animate-pulse text-amber-500' : ''}`} />
+                      <span>{isListening ? 'Đang Listening... (Dừng)' : 'Listening để Bind ID'}</span>
+                    </Button>
+
+                    {/* Open Bot */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const botUrl = tgBotUsername ? `https://t.me/${tgBotUsername}?start=lifeos` : 'https://t.me/BotFather';
+                        window.open(botUrl, '_blank');
+                      }}
+                      className="text-xs"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                      <span>{tgBotUsername ? `Mở @${tgBotUsername}` : 'Mở Bot Telegram'}</span>
+                    </Button>
+                  </div>
+
+                  {/* Clear / Delete button */}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearTelegram}
+                    className="text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                    title="Xóa token và ngắt kết nối bot"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                    <span>Xóa kết nối</span>
+                  </Button>
+                </div>
+
+                {/* Console Log (Terminal) */}
+                <div className="rounded-lg bg-slate-950 border border-slate-800 p-3 font-mono text-xs shadow-inner">
+                  <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-800 text-[11px] text-slate-400">
+                    <div className="flex items-center gap-1.5">
+                      <Terminal className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-slate-300 font-semibold">Console Log</span>
+                      {isListening && (
+                        <span className="flex items-center gap-1 text-amber-400 text-[10px] ml-2 font-sans">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                          Đang nghe tin nhắn...
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setTgLogs([{ id: Date.now().toString(), time: new Date().toLocaleTimeString(), text: 'Đã dọn log.', type: 'info' }])}
+                      className="text-[10px] text-slate-500 hover:text-slate-300"
+                    >
+                      Xóa log
+                    </button>
+                  </div>
+                  <div className="h-24 overflow-y-auto space-y-1 pr-1" ref={logContainerRef}>
+                    {tgLogs.map((log) => (
+                      <div key={log.id} className="leading-relaxed flex items-start gap-1.5 text-[11px]">
+                        <span className="text-slate-500 shrink-0 select-none">[{log.time}]</span>
+                        <span
+                          className={
+                            log.type === 'success' ? 'text-emerald-400 font-medium' :
+                            log.type === 'error' ? 'text-rose-400 font-medium' :
+                            log.type === 'warn' ? 'text-amber-400' :
+                            'text-slate-300'
+                          }
+                        >
+                          {log.text}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Minimal Settings Grid */}
+                <div className="space-y-2.5 pt-1">
+                  {/* Báo cáo sáng 5h */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                    <div className="flex items-center gap-2.5">
+                      <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+                      <div>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs block">
+                          Báo cáo lịch sáng
+                        </span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Gửi thời khóa biểu và việc cần làm hôm nay
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2.5">
+                      <input
+                        type="time"
+                        value={tgMorningBriefingTime}
+                        onChange={(e) => setTgMorningBriefingTime(e.target.value)}
+                        className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-0.5 text-xs font-mono font-semibold text-slate-800 dark:text-slate-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setTgMorningBriefingEnabled(!tgMorningBriefingEnabled)}
+                        className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
+                          tgMorningBriefingEnabled ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
+                        }`}
+                      >
+                        <div
+                          className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                            tgMorningBriefingEnabled ? 'translate-x-4' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Trích dẫn triết lý - Tối giản */}
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                    <div className="flex items-center gap-2.5">
+                      <BookOpen className="w-4 h-4 text-purple-500 shrink-0" />
+                      <div>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs block">
+                          Trích dẫn triết lý
+                        </span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Kèm 1 câu danh ngôn ngắn trong thông báo
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setTgIncludePhilosophy(!tgIncludePhilosophy)}
+                      className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
+                        tgIncludePhilosophy ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
+                      }`}
+                    >
+                      <div
+                        className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                          tgIncludePhilosophy ? 'translate-x-4' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Phạm vi thông báo & Interval */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-1">
+                    {/* Event types */}
+                    <div className="space-y-2 p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/20">
+                      <span className="font-semibold text-slate-700 dark:text-slate-300 block text-[11px]">
+                        Sự kiện thông báo:
+                      </span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-600 dark:text-slate-400">Lịch cố định & Thời khóa biểu</span>
+                        <button
+                          type="button"
+                          onClick={() => setTgNotifySchedules(!tgNotifySchedules)}
+                          className={`w-8 h-4 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
+                            tgNotifySchedules ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
+                          }`}
+                        >
+                          <div className={`bg-white w-3 h-3 rounded-full shadow-md transform transition-transform ${tgNotifySchedules ? 'translate-x-4' : 'translate-x-0'}`} />
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-600 dark:text-slate-400">Nhiệm vụ đến giờ & Hạn chót</span>
+                        <button
+                          type="button"
+                          onClick={() => setTgNotifyTasks(!tgNotifyTasks)}
+                          className={`w-8 h-4 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
+                            tgNotifyTasks ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
+                          }`}
+                        >
+                          <div className={`bg-white w-3 h-3 rounded-full shadow-md transform transition-transform ${tgNotifyTasks ? 'translate-x-4' : 'translate-x-0'}`} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Timing & Interval */}
+                    <div className="space-y-2 p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/20">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-slate-700 dark:text-slate-300 font-medium text-[11px]">Nhắc trước:</span>
+                        <select
+                          value={tgReminderMinutes}
+                          onChange={(e) => setTgReminderMinutes(Number(e.target.value))}
+                          className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-0.5 text-xs text-slate-800 dark:text-slate-200"
+                        >
+                          <option value={5}>5 phút</option>
+                          <option value={10}>10 phút</option>
+                          <option value={15}>15 phút</option>
+                          <option value={30}>30 phút</option>
+                          <option value={60}>60 phút</option>
+                        </select>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-slate-700 dark:text-slate-300 font-medium text-[11px]">Chu kỳ quét:</span>
+                        <select
+                          value={tgCheckInterval}
+                          onChange={(e) => setTgCheckInterval(Number(e.target.value))}
+                          className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-0.5 text-xs text-slate-800 dark:text-slate-200"
+                        >
+                          <option value={30}>30 giây</option>
+                          <option value={60}>60 giây</option>
+                          <option value={120}>2 phút</option>
+                          <option value={300}>5 phút</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
@@ -1232,7 +1793,7 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
                       className="text-xs"
                     >
                       <Send className={`w-3.5 h-3.5 mr-1.5 ${isTestingTg ? 'animate-bounce' : ''}`} />
-                      <span>{isTestingTg ? 'Đang gửi test...' : 'Gửi tin nhắn thử nghiệm'}</span>
+                      <span>{isTestingTg ? 'Đang gửi...' : 'Gửi tin test'}</span>
                     </Button>
 
                     <Button
@@ -1242,8 +1803,8 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
                       disabled={isBriefingTg}
                       className="text-xs"
                     >
-                      <Sparkles className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
-                      <span>{isBriefingTg ? 'Đang gửi báo cáo...' : 'Gửi báo cáo hôm nay'}</span>
+                      <Sparkles className={`w-3.5 h-3.5 mr-1.5 text-amber-500 ${isBriefingTg ? 'animate-spin' : ''}`} />
+                      <span>{isBriefingTg ? 'Đang gửi...' : 'Gửi thử báo cáo sáng'}</span>
                     </Button>
 
                     <Button
@@ -1251,8 +1812,7 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
                       size="sm"
                       onClick={handleCheckUpcoming}
                       disabled={isCheckingUpcomingTg}
-                      className="text-xs text-slate-500"
-                      title="Chủ động quét kiểm tra xem có lịch nào sắp đến không"
+                      className="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isCheckingUpcomingTg ? 'animate-spin' : ''}`} />
                       <span>Quét lịch ngay</span>
@@ -1264,10 +1824,10 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
                     size="sm"
                     onClick={handleSaveTelegram}
                     disabled={isSavingTg}
-                    className="text-xs"
+                    className="text-xs font-semibold px-4 bg-blue-600 hover:bg-blue-700 text-white shadow-xs"
                   >
-                    <Check className="w-3.5 h-3.5 mr-1.5" />
-                    <span>{isSavingTg ? 'Đang lưu...' : 'Lưu cài đặt Telegram'}</span>
+                    <Check className={`w-3.5 h-3.5 mr-1.5 ${isSavingTg ? 'animate-spin' : ''}`} />
+                    <span>{isSavingTg ? 'Đang lưu...' : 'Lưu cài đặt'}</span>
                   </Button>
                 </div>
               </div>
@@ -1528,7 +2088,350 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
             </div>
           )}
 
-          {/* ================= TAB 4: ADVANCED (TÍNH NĂNG NÂNG CAO) ================= */}
+          {/* ================= TAB 4: MASTERY RANKS & GAMIFICATION (DANH HIỆU & CÀY CUỐC) ================= */}
+          {activeTab === 'MASTERY_RANKS' && (() => {
+            const topStats = getTopCourseMastery(coursesList);
+            return (
+              <div className="space-y-5 animate-in fade-in-50 duration-200">
+                {/* 1. Hero Header & Master Toggle Card */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-4 shadow-xs relative overflow-hidden">
+                  <div className="flex flex-wrap items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 via-orange-500 to-rose-600 flex items-center justify-center text-white shadow-md shadow-amber-500/25">
+                        <Swords className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                            Hệ Thống Danh Hiệu & Chế Độ Cày Cuốc (Gamification Mastery)
+                          </span>
+                          <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                            <Sparkles className="w-2.5 h-2.5" />
+                            11 Bậc Rank
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          Tích lũy điểm EXP sau mỗi bài học hoàn thành, tiến hóa cấp bậc danh hiệu và hào quang động.
+                        </p>
+                      </div>
+                    </div>
+
+                    <Badge
+                      variant={courseGamificationEnabled ? 'success' : 'secondary'}
+                      className="text-[10px] py-0.5 px-2.5 font-bold uppercase tracking-wider"
+                    >
+                      {courseGamificationEnabled ? 'ĐANG BẬT' : 'ĐANG TẮT'}
+                    </Badge>
+                  </div>
+
+                  {/* Main Toggle Switch */}
+                  <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30">
+                    <div className="pr-4">
+                      <span className="font-semibold text-slate-800 dark:text-slate-200 block text-xs">
+                        Bật chế độ Cày Cuốc & EXP Rank
+                      </span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Khi bật, mỗi bài học hoàn thành sẽ cộng từ 15–70 EXP với thuật toán độ khó lũy tiến. Khi tắt, giao diện quay về phong cách tối giản thanh lịch.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleToggleCourseGamification}
+                      className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 cursor-pointer shrink-0 ${
+                        courseGamificationEnabled ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-700'
+                      }`}
+                    >
+                      <div
+                        className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
+                          courseGamificationEnabled ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* 2. Topbar Rank Widget Display Toggle */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30 gap-3">
+                    <div className="pr-4 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs">
+                          Hiển thị Huy hiệu Rank trên thanh Topbar
+                        </span>
+                        <Badge
+                          variant={showRankOnTopbar ? 'success' : 'secondary'}
+                          className="text-[9px] py-0 px-1.5"
+                        >
+                          {showRankOnTopbar ? 'BẬT' : 'TẮT'}
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Hiển thị huy hiệu cấp bậc cao nhất, icon danh hiệu, điểm EXP và hiệu ứng hào quang phát sáng trực tiếp trên thanh điều hướng Topbar.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
+                      {/* Live preview of how it looks on Topbar */}
+                      {courseGamificationEnabled && (
+                        <div
+                          className="hidden md:flex items-center gap-1.5 py-1 px-2.5 rounded-md border text-xs font-semibold shadow-xs"
+                          style={{
+                            boxShadow: topStats.masteryInfo.currentTier.glowShadow,
+                            border: `1px solid ${topStats.masteryInfo.currentTier.color}50`,
+                          }}
+                        >
+                          <span>{topStats.masteryInfo.currentTier.icon}</span>
+                          <span className="font-bold">{topStats.masteryInfo.currentTier.title}</span>
+                          <span className="text-[10px] opacity-40">•</span>
+                          <span className="font-mono text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                            {topStats.topPoints.toLocaleString()} EXP
+                          </span>
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={handleToggleRankOnTopbar}
+                        className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 cursor-pointer shrink-0 ${
+                          showRankOnTopbar ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-700'
+                        }`}
+                      >
+                        <div
+                          className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
+                            showRankOnTopbar ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Bảng Thống Kê EXP Khóa Học Của Người Dùng */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-4 shadow-xs">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-200">
+                      <Trophy className="w-4 h-4 text-amber-500" />
+                      <span>Thống Kê Khóa Học & Điểm EXP Thực Tế</span>
+                    </div>
+                    <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
+                      Tổng tích lũy: <strong className="text-amber-600 dark:text-amber-400 font-bold">{topStats.totalXP.toLocaleString()} EXP</strong>
+                    </span>
+                  </div>
+
+                  {coursesList.length === 0 ? (
+                    <div className="p-6 text-center text-slate-400 text-xs rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+                      Chưa có khóa học nào được tạo. Hãy thêm khóa học tại trang Khóa Học để bắt đầu hành trình cày cuốc!
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {coursesList.map((course: any) => {
+                        const mInfo = getCourseMasteryInfo(course.mastery_points || 0);
+                        return (
+                          <div
+                            key={course.id}
+                            className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex flex-col justify-between space-y-2.5 transition hover:border-slate-400 dark:hover:border-slate-600"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="space-y-0.5 min-w-0">
+                                <h4 className="font-bold text-xs text-slate-800 dark:text-slate-200 truncate" title={course.title}>
+                                  {course.title}
+                                </h4>
+                                <span className="text-[10px] text-slate-400 block truncate">
+                                  {course.instructor ? `GV: ${course.instructor}` : 'Tự học'}
+                                </span>
+                              </div>
+
+                              <div
+                                className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold shrink-0 border"
+                                style={{
+                                  borderColor: `${mInfo.currentTier.color}60`,
+                                  boxShadow: mInfo.currentTier.glowShadow,
+                                }}
+                              >
+                                <span>{mInfo.currentTier.icon}</span>
+                                <span className="truncate max-w-[80px]">{mInfo.currentTier.title}</span>
+                                {mInfo.mythicStage && (
+                                  <span className="text-amber-500 font-mono">[{mInfo.mythicStage.romanNumeral}]</span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                                <span>{mInfo.points.toLocaleString()} EXP</span>
+                                <span>
+                                  {mInfo.nextTier ? `Còn ${mInfo.xpNeededForNext.toLocaleString()} EXP lên ${mInfo.nextTier.title}` : 'Đạt Cảnh Giới Tối Cao'}
+                                </span>
+                              </div>
+                              <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full transition-all duration-300"
+                                  style={{
+                                    width: `${mInfo.progressPercent}%`,
+                                    background: mInfo.currentTier.gradientBg,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. Visual Showcase: 11 Cấp Bậc Danh Hiệu (Ultra-rich Cards) */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-4 shadow-xs">
+                  <div className="pb-2 border-b border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-200">
+                      <Crown className="w-4 h-4 text-amber-500" />
+                      <span>Bảng Vinh Danh 11 Cấp Bậc Danh Hiệu (Mastery Ranks)</span>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Đường cong độ khó lũy tiến với hiệu ứng màu sắc kim loại và đá quý cao cấp cho từng bậc.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                    {COURSE_RANK_TIERS.map((tier) => (
+                      <div
+                        key={tier.level}
+                        className={`p-3.5 rounded-2xl border flex flex-col justify-between transition-all hover:scale-[1.02] shadow-xs relative overflow-hidden ${
+                          tier.bgColor
+                        } ${tier.borderColor} ${
+                          tier.level === 11 ? 'sm:col-span-2 lg:col-span-3 ring-2 ring-amber-400/60 shadow-lg shadow-amber-500/10' : ''
+                        }`}
+                        style={{ boxShadow: tier.glowShadow }}
+                      >
+                        <div>
+                          {/* Card Top: Level & Icon */}
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-2xl select-none p-1 rounded-lg bg-white/40 dark:bg-black/30 backdrop-blur-xs">
+                                {tier.icon}
+                              </span>
+                              <div>
+                                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                                  Tier {tier.level} / 11
+                                </span>
+                                <h4 className={`font-black text-sm ${tier.textColor}`}>
+                                  {tier.title}
+                                </h4>
+                              </div>
+                            </div>
+
+                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border border-slate-300 dark:border-slate-600 bg-white/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 shrink-0">
+                              {tier.min_xp.toLocaleString()} EXP+
+                            </span>
+                          </div>
+
+                          {/* Tagline & Description */}
+                          <p className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 italic mb-1">
+                            "{tier.tagline}"
+                          </p>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                            {tier.description}
+                          </p>
+                        </div>
+
+                        {/* Special Mythic 5-Stage Showcase for Tier 11 */}
+                        {tier.level === 11 && (
+                          <div className="mt-4 pt-3 border-t border-amber-300/60 dark:border-amber-700/60 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                                <Flame className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                                5 Tầng Cảnh Giới Thần Thoại (Mythic Prestige Stages):
+                              </span>
+                              <span className="text-[10px] font-mono text-amber-600 dark:text-amber-400 font-semibold">
+                                Điểm càng cao hiệu ứng hào quang càng bùng nổ
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+                              <div className="p-2 rounded-xl bg-purple-500/10 border border-purple-300 dark:border-purple-800 space-y-0.5">
+                                <div className="flex items-center justify-between text-[11px] font-bold text-purple-700 dark:text-purple-300">
+                                  <span>[I] Khởi Thần</span>
+                                  <span>⭐</span>
+                                </div>
+                                <div className="text-[10px] font-mono text-slate-500">60k - 65k EXP</div>
+                                <div className="text-[9px] text-purple-600 dark:text-purple-400">Hào Quang Thần Tím</div>
+                              </div>
+
+                              <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-300 dark:border-cyan-800 space-y-0.5">
+                                <div className="flex items-center justify-between text-[11px] font-bold text-cyan-700 dark:text-cyan-300">
+                                  <span>[II] Vạn Tượng</span>
+                                  <span>⭐⭐</span>
+                                </div>
+                                <div className="text-[10px] font-mono text-slate-500">65k - 75k EXP</div>
+                                <div className="text-[9px] text-cyan-600 dark:text-cyan-400">Cực Quang Huyền Bí</div>
+                              </div>
+
+                              <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-300 dark:border-rose-800 space-y-0.5">
+                                <div className="flex items-center justify-between text-[11px] font-bold text-rose-700 dark:text-rose-300">
+                                  <span>[III] Hỗn Độn</span>
+                                  <span>⭐⭐⭐</span>
+                                </div>
+                                <div className="text-[10px] font-mono text-slate-500">75k - 90k EXP</div>
+                                <div className="text-[9px] text-rose-600 dark:text-rose-400">Bão Siêu Tân Tinh</div>
+                              </div>
+
+                              <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-300 dark:border-amber-800 space-y-0.5">
+                                <div className="flex items-center justify-between text-[11px] font-bold text-amber-700 dark:text-amber-300">
+                                  <span>[IV] Thái Cực</span>
+                                  <span>⭐⭐⭐⭐</span>
+                                </div>
+                                <div className="text-[10px] font-mono text-slate-500">90k - 110k EXP</div>
+                                <div className="text-[9px] text-amber-600 dark:text-amber-400">Sóng Xung Kích Thần</div>
+                              </div>
+
+                              <div className="p-2 rounded-xl bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-purple-500/20 border border-amber-400 dark:border-amber-500 space-y-0.5 ring-1 ring-amber-400/40">
+                                <div className="flex items-center justify-between text-[11px] font-black text-amber-800 dark:text-amber-200">
+                                  <span>[V] Bất Diệt</span>
+                                  <span>⭐⭐⭐⭐⭐👑</span>
+                                </div>
+                                <div className="text-[10px] font-mono text-slate-500">110k+ EXP</div>
+                                <div className="text-[9px] font-bold text-amber-700 dark:text-amber-300">Trường Lực Thần Giới</div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 5. Danger Zone: Reset All Ranks */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-4 shadow-xs">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                    <span className="text-xs font-bold text-rose-600 uppercase tracking-wider">
+                      Vùng Quản Trị & Đặt Lại Dữ Liệu
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/40 dark:bg-rose-950/20">
+                    <div>
+                      <span className="font-semibold text-rose-800 dark:text-rose-300 block text-xs">
+                        Đặt lại toàn bộ dữ liệu Rank & EXP về 0
+                      </span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Đưa điểm kinh nghiệm của toàn bộ khóa học về 0 EXP (Tập sự). Trạng thái bài học và lịch trình học tập không bị xóa.
+                      </span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleResetAllRanks}
+                      disabled={isResettingRanks}
+                      className="border-rose-300 text-rose-700 hover:bg-rose-100 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-rose-900/40 text-xs shrink-0 cursor-pointer"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 mr-1" />
+                      {isResettingRanks ? 'Đang đặt lại...' : 'Đặt lại toàn bộ Rank'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ================= TAB 5: ADVANCED (TÍNH NĂNG NÂNG CAO) ================= */}
           {activeTab === 'ADVANCED' && (
             <div className="space-y-5 animate-in fade-in-50 duration-200">
               {/* Discipline Mechanics */}

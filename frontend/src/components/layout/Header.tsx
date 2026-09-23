@@ -1,10 +1,17 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import {
   Search, Cloud, Flame, Shield, Clock, AlertCircle, CheckCircle2,
-  HeartPulse, Activity, CheckSquare, CalendarClock, BookOpen, Send, Sparkles
+  HeartPulse, Activity, CheckSquare, CalendarClock, BookOpen, Send, Sparkles, Swords
 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { HeaderUpcomingItem, TensionSummary, ConsistencyInfo } from '../../types';
+import { isMentalHealthEnabled, isDigitalWellbeingEnabled, setDigitalWellbeingEnabled, isRankOnTopbarEnabled } from '../../utils/featureFlags';
+import {
+  isCourseGamificationEnabled,
+  getTopCourseMastery,
+  CourseMasteryCalculation
+} from '../../utils/courseGamification';
+import { api } from '../../services/api';
 
 interface HeaderProps {
   onOpenSearch: () => void;
@@ -35,6 +42,75 @@ export const Header: React.FC<HeaderProps> = ({
   dbLastSaved,
   onNavigateTab,
 }) => {
+  const [isMentalHealthOn, setIsMentalHealthOn] = useState<boolean>(() => isMentalHealthEnabled());
+  const [isDigitalWellbeingOn, setIsDigitalWellbeingOn] = useState<boolean>(() => isDigitalWellbeingEnabled());
+  const [isGamificationOn, setIsGamificationOn] = useState<boolean>(() => isCourseGamificationEnabled());
+  const [isRankOnTopbar, setIsRankOnTopbar] = useState<boolean>(() => isRankOnTopbarEnabled());
+  const [topMastery, setTopMastery] = useState<{
+    topCourse: { id: number; title: string; mastery_points?: number; mastery_level?: number } | null;
+    topPoints: number;
+    masteryInfo: CourseMasteryCalculation;
+    totalXP: number;
+  } | null>(null);
+
+  const fetchCourseRanks = async () => {
+    try {
+      const courses = await api.courses.list();
+      const res = getTopCourseMastery(courses);
+      setTopMastery(res);
+    } catch (err) {
+      console.error('Failed to fetch course ranks for header:', err);
+    }
+  };
+
+  useEffect(() => {
+    // Sync digital wellbeing status from API
+    api.screentime.getStatus().then(res => {
+      if (res && typeof res.enabled === 'boolean') {
+        setIsDigitalWellbeingOn(res.enabled);
+        setDigitalWellbeingEnabled(res.enabled);
+      }
+    }).catch(() => {});
+
+    fetchCourseRanks();
+
+    const handleMentalHealthUpdated = (e: any) => {
+      setIsMentalHealthOn(e.detail?.enabled ?? isMentalHealthEnabled());
+    };
+    const handleDigitalWellbeingUpdated = (e: any) => {
+      setIsDigitalWellbeingOn(e.detail?.enabled ?? isDigitalWellbeingEnabled());
+    };
+    const handleGamificationUpdated = (e: any) => {
+      const enabled = e.detail?.enabled ?? isCourseGamificationEnabled();
+      setIsGamificationOn(enabled);
+      if (enabled) {
+        fetchCourseRanks();
+      }
+    };
+    const handleRankOnTopbarUpdated = (e: any) => {
+      setIsRankOnTopbar(e.detail?.enabled ?? isRankOnTopbarEnabled());
+    };
+    const handleCoursesUpdated = () => {
+      fetchCourseRanks();
+    };
+
+    window.addEventListener('lifeos_mental_health_updated', handleMentalHealthUpdated);
+    window.addEventListener('lifeos_digital_wellbeing_updated', handleDigitalWellbeingUpdated);
+    window.addEventListener('lifeos_gamification_updated', handleGamificationUpdated);
+    window.addEventListener('lifeos_show_rank_on_topbar_updated', handleRankOnTopbarUpdated);
+    window.addEventListener('lifeos_courses_updated', handleCoursesUpdated);
+    window.addEventListener('lifeos_task_updated', handleCoursesUpdated);
+
+    return () => {
+      window.removeEventListener('lifeos_mental_health_updated', handleMentalHealthUpdated);
+      window.removeEventListener('lifeos_digital_wellbeing_updated', handleDigitalWellbeingUpdated);
+      window.removeEventListener('lifeos_gamification_updated', handleGamificationUpdated);
+      window.removeEventListener('lifeos_show_rank_on_topbar_updated', handleRankOnTopbarUpdated);
+      window.removeEventListener('lifeos_courses_updated', handleCoursesUpdated);
+      window.removeEventListener('lifeos_task_updated', handleCoursesUpdated);
+    };
+  }, []);
+
   // 1. Consistency / Nhất quán calculation
   const consistencyData = consistency || discipline;
   const score = consistencyData?.score ?? 10.0;
@@ -302,39 +378,61 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         )}
 
-        {/* 2. TẢI NHẬN THỨC (Minimalist & Sleek Cognitive Load Telemetry) */}
+        {/* 2. ÁP LỰC & SỨC KHỎE TINH THẦN (Stress & Mental Health Telemetry) */}
         <button
           onClick={() => onNavigateTab?.('wellbeing')}
-          className={`flex items-center gap-1.5 py-1 px-2.5 rounded-md border text-xs font-semibold cursor-pointer transition hover:opacity-85 shrink-0 shadow-xs ${tensionColorClass} ${
-            isTensionHigh ? 'animate-pulse' : ''
+          className={`flex items-center gap-1.5 py-1 px-2.5 rounded-md border text-xs font-semibold cursor-pointer transition hover:opacity-85 shrink-0 shadow-xs ${
+            isMentalHealthOn
+              ? `${tensionColorClass} ${isTensionHigh ? 'animate-pulse' : ''}`
+              : 'border-dashed border-slate-300 dark:border-slate-700 bg-slate-100/70 dark:bg-slate-800/40 text-slate-400 dark:text-slate-500'
           }`}
           title={
-            tension
-              ? `Chỉ số Tải nhận thức: ${tension.tension_label} • Khối lượng học & làm việc: ${(tension.tension_score ?? 6.0).toFixed(1)}h/ngày
-• Nguy cơ quá tải tuần: ${tension.weekly_risk_level === 'BURNOUT_RISK' ? 'Cảnh báo quá tải' : tension.weekly_risk_level === 'MODERATE' ? 'Căng thẳng cục bộ' : 'Tối ưu cân bằng'}
-• Click để mở Quản lý Sức khỏe Tinh thần & phân bổ luồng học`
-              : 'Chỉ số Tải nhận thức • Click để mở Quản lý Sức khỏe Tinh thần'
+            !isMentalHealthOn
+              ? 'Quản lý Sức khỏe Tinh thần (Đang tắt) • Click để mở và bật lại tính năng'
+              : tension
+              ? `Mức độ Áp lực: ${tension.tension_label} • Khối lượng học & làm việc: ${(tension.tension_score ?? 6.0).toFixed(1)}h/ngày
+• Nguy cơ quá tải tuần: ${tension.weekly_risk_level === 'BURNOUT_RISK' ? 'Cảnh báo quá tải' : tension.weekly_risk_level === 'MODERATE' ? 'Căng thẳng vừa' : 'Tối ưu cân bằng'}
+• Click để mở Quản lý Sức khỏe Tinh thần & Cân bằng Cuộc sống`
+              : 'Mức độ Áp lực & Sức khỏe Tinh thần • Click để mở'
           }
         >
           <HeartPulse
             className={`w-3.5 h-3.5 shrink-0 ${
-              isTensionHigh ? 'text-rose-500 animate-bounce' : 'text-current'
+              !isMentalHealthOn
+                ? 'text-slate-400 dark:text-slate-500'
+                : isTensionHigh
+                ? 'text-rose-500 animate-bounce'
+                : 'text-current'
             }`}
           />
           <span className="flex items-center gap-1.5">
-            <span className="font-medium text-slate-600 dark:text-slate-400">Tải:</span>
-            <strong className="font-mono">{(tension?.tension_score ?? 6.0).toFixed(1)}h</strong>
-            <span className="text-[10px] opacity-40 select-none">•</span>
-            <span className="truncate max-w-[85px] sm:max-w-none">{tension?.tension_label || 'Tối ưu'}</span>
+            <span className={isMentalHealthOn ? 'font-medium text-slate-600 dark:text-slate-400' : 'font-medium text-slate-400 dark:text-slate-500'}>
+              Áp lực:
+            </span>
+            {isMentalHealthOn ? (
+              <>
+                <strong className="font-mono">{(tension?.tension_score ?? 6.0).toFixed(1)}h</strong>
+                <span className="text-[10px] opacity-40 select-none">•</span>
+                <span className="truncate max-w-[85px] sm:max-w-none">{tension?.tension_label || 'Tối ưu'}</span>
+              </>
+            ) : (
+              <span className="text-[11px] font-normal italic">(Đang tắt)</span>
+            )}
           </span>
         </button>
 
         {/* 3. CHỈ SỐ NHẤT QUÁN & THỰC THI (Multi-day Statistical Consistency Index) */}
         <button
           onClick={() => onNavigateTab?.('screentime')}
-          className={`flex items-center gap-1.5 py-1 px-2.5 rounded-md border text-xs font-semibold cursor-pointer transition hover:opacity-85 shrink-0 shadow-xs ${consistencyColorClass}`}
+          className={`flex items-center gap-1.5 py-1 px-2.5 rounded-md border text-xs font-semibold cursor-pointer transition hover:opacity-85 shrink-0 shadow-xs ${
+            isDigitalWellbeingOn
+              ? consistencyColorClass
+              : 'border-dashed border-slate-300 dark:border-slate-700 bg-slate-100/70 dark:bg-slate-800/40 text-slate-400 dark:text-slate-500'
+          }`}
           title={
-            metrics
+            !isDigitalWellbeingOn
+              ? 'Quản lý Cân bằng số & Screentime (Đang tắt) • Click để mở'
+              : metrics
               ? `Chỉ số Nhất quán & Thực thi: ${score.toFixed(1)}/10 (${consistencyData?.tier_label || 'Xuất sắc'})
 • Điểm TB (μ): ${metrics.mean}/10
 • Phương sai (σ²): ${metrics.variance} • Độ ổn định: ${metrics.stability_pct}%
@@ -344,14 +442,64 @@ export const Header: React.FC<HeaderProps> = ({
               : `Chỉ số Nhất quán: ${score.toFixed(1)}/10 • Click để xem chi tiết`
           }
         >
-          <Shield className="w-3.5 h-3.5 shrink-0" />
+          <Shield className={`w-3.5 h-3.5 shrink-0 ${!isDigitalWellbeingOn ? 'text-slate-400 dark:text-slate-500' : ''}`} />
           <span className="flex items-center gap-1">
             <span>Nhất quán:</span>
-            <strong className="font-mono">{score.toFixed(1)}/10</strong>
+            {isDigitalWellbeingOn ? (
+              <strong className="font-mono">{score.toFixed(1)}/10</strong>
+            ) : (
+              <span className="text-[11px] font-normal italic">(Đang tắt)</span>
+            )}
           </span>
         </button>
 
-        {/* 4. PROGRESSIVE RADIANT STREAK (Chuỗi càng cao màu càng rực rỡ) */}
+        {/* 4. RANK MASTERY WIDGET (Hiển thị khi Chế độ Cày Cuốc BẬT) */}
+        {isGamificationOn && isRankOnTopbar && (
+          <button
+            onClick={() => onNavigateTab?.('courses')}
+            className={`flex items-center gap-1.5 py-1 px-2.5 rounded-md border text-xs font-semibold cursor-pointer transition hover:scale-[1.02] shrink-0 shadow-xs active:scale-95 ${
+              topMastery?.masteryInfo.currentTier.level === 11
+                ? 'bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-purple-500/20 border-amber-400 dark:border-amber-400 text-amber-900 dark:text-amber-200 ring-1 ring-amber-400/50'
+                : (topMastery?.masteryInfo.currentTier.level ?? 1) >= 9
+                ? 'bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-rose-500/15 border-orange-400 dark:border-orange-500 text-orange-800 dark:text-orange-200'
+                : (topMastery?.masteryInfo.currentTier.level ?? 1) >= 6
+                ? 'bg-gradient-to-r from-blue-500/15 to-indigo-500/15 border-blue-400 dark:border-blue-500 text-blue-800 dark:text-blue-200'
+                : (topMastery?.masteryInfo.currentTier.level ?? 1) >= 4
+                ? 'bg-gradient-to-r from-amber-500/10 to-yellow-500/15 border-amber-300 dark:border-amber-600 text-amber-800 dark:text-amber-300'
+                : 'bg-slate-100/90 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+            }`}
+            style={
+              topMastery?.masteryInfo.mythicStage
+                ? { boxShadow: topMastery.masteryInfo.mythicStage.boxShadow }
+                : topMastery?.masteryInfo.currentTier.glowShadow
+                ? { boxShadow: topMastery.masteryInfo.currentTier.glowShadow }
+                : undefined
+            }
+            title={
+              topMastery?.topCourse
+                ? `Danh Hiệu: ${topMastery.masteryInfo.currentTier.title} (${topMastery.topPoints.toLocaleString()} EXP)\n• Khóa học dẫn đầu: "${topMastery.topCourse.title}"\n• Tổng EXP tích lũy: ${topMastery.totalXP.toLocaleString()} EXP\n• Click để xem chi tiết Khóa học & Cày Cuốc`
+                : `Hệ Thống Danh Hiệu Khóa Học: ${topMastery?.masteryInfo.currentTier.title || 'Tập Sự'}\n• Click để vào trang Khóa học`
+            }
+          >
+            <span className="text-sm select-none">{topMastery?.masteryInfo.currentTier.icon || '🛡️'}</span>
+            <span className="flex items-center gap-1 font-bold">
+              <span className="truncate max-w-[85px] sm:max-w-none">
+                {topMastery?.masteryInfo.currentTier.title || 'Tập Sự'}
+              </span>
+              {topMastery?.masteryInfo.mythicStage && (
+                <span className="text-[10px] font-mono font-black text-amber-500">
+                  [{topMastery.masteryInfo.mythicStage.romanNumeral}]
+                </span>
+              )}
+            </span>
+            <span className="text-[10px] opacity-40 select-none">•</span>
+            <span className="font-mono text-[11px] font-bold text-amber-600 dark:text-amber-400">
+              {(topMastery?.topPoints ?? 0).toLocaleString()} EXP
+            </span>
+          </button>
+        )}
+
+        {/* 5. PROGRESSIVE RADIANT STREAK (Chuỗi càng cao màu càng rực rỡ) */}
         <Badge
           variant="secondary"
           className={`gap-1.5 py-1 px-2.5 font-medium select-none shrink-0 transition-all ${streakDetails.badgeClass}`}

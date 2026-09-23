@@ -3,7 +3,8 @@ import {
   BookOpen, Plus, Clock, Layers, X, Trash2, Search,
   ChevronsDown, ChevronsUp, GraduationCap, CheckCircle2,
   Edit3, Palette, Check, Sparkles, FileText, Target, Zap, Flame, Calendar, HeartPulse,
-  Swords, AlignLeft, AlignCenter, AlignRight, Trophy, ShieldAlert, Award
+  Swords, AlignLeft, AlignCenter, AlignRight, Trophy, ShieldAlert, Award,
+  RotateCcw, Crown, Star
 } from 'lucide-react';
 import { CourseTree } from '../components/courses/CourseTree';
 import { CreateStudyTaskModal } from '../components/courses/CreateStudyTaskModal';
@@ -197,8 +198,23 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({ onNavigateTab }) => {
       await api.courses.updateNode(node.id, { status: newStatus });
       if (selectedCourseId) await loadCourseDetail(selectedCourseId);
       await loadCourses();
+      window.dispatchEvent(new CustomEvent('lifeos_courses_updated'));
     } catch (err) {
       console.error('Failed to toggle node status:', err);
+    }
+  };
+
+  const handleResetCourseMastery = async (courseId: number) => {
+    if (window.confirm('Bạn có chắc chắn muốn đặt lại điểm EXP và Rank của khóa học này về 0 (Tập sự)?')) {
+      try {
+        await api.courses.resetMastery(courseId);
+        if (selectedCourseId === courseId) await loadCourseDetail(courseId);
+        await loadCourses();
+        window.dispatchEvent(new CustomEvent('lifeos_courses_updated'));
+      } catch (err) {
+        console.error('Failed to reset course mastery:', err);
+        alert('Không thể đặt lại điểm Rank.');
+      }
     }
   };
 
@@ -382,6 +398,58 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({ onNavigateTab }) => {
     }
   };
 
+  const handleCreateScheduleEvent = async (data: {
+    title: string;
+    course_id: number;
+    course_node_id?: number;
+    day_of_week: number;
+    start_time: string;
+    end_time: string;
+    category?: string;
+    color?: string;
+    location?: string;
+    description?: string;
+    create_attached_task?: boolean;
+    task_priority?: string;
+    task_difficulty?: number;
+  }) => {
+    try {
+      const created = await api.schedules.create({
+        title: data.title,
+        day_of_week: data.day_of_week,
+        start_time: data.start_time,
+        end_time: data.end_time,
+        category: data.category || 'STUDY',
+        color: data.color || '#10b981',
+        location: data.location || undefined,
+        description: data.description || undefined,
+        course_id: data.course_id,
+        course_node_id: data.course_node_id,
+        repeat_rule: 'WEEKLY',
+        is_active: true,
+      });
+
+      if (data.create_attached_task && data.course_node_id) {
+        await api.courses.createStudyTask({
+          lesson_id: data.course_node_id,
+          title: `Ôn tập: ${data.title}`,
+          difficulty: data.task_difficulty || 2,
+          priority: data.task_priority || 'MEDIUM',
+          fixed_schedule_id: created.id,
+        });
+      }
+
+      await loadFixedSchedules();
+      if (selectedCourseId) await loadCourseDetail(selectedCourseId);
+      window.dispatchEvent(new CustomEvent('lifeos_schedule_updated'));
+      window.dispatchEvent(new CustomEvent('lifeos_task_updated'));
+    } catch (err: any) {
+      console.error('Failed to create schedule event:', err);
+      alert('Không thể tạo lịch học: ' + (err?.message || 'Vui lòng thử lại'));
+      throw err;
+    }
+  };
+
   // Calculate total duration in minutes for the course
   const totalDurationMinutes = useMemo(() => {
     if (!courseDetail?.root_nodes) return 0;
@@ -531,10 +599,14 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({ onNavigateTab }) => {
               <div
                 key={c.id}
                 onClick={() => setSelectedCourseId(c.id)}
-                className={`group relative rounded-2xl border min-w-[260px] sm:min-w-[290px] max-w-[320px] transition-all cursor-pointer shadow-xs overflow-hidden flex flex-col justify-between ${
+                className={`group relative rounded-2xl border-2 min-w-[260px] sm:min-w-[290px] max-w-[320px] transition-all cursor-pointer shadow-xs overflow-hidden flex flex-col justify-between ${
                   isSelected
-                    ? 'border-neutral-900 dark:border-white ring-2 ring-neutral-900/10 dark:ring-white/20 shadow-md scale-[1.01]'
-                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 hover:shadow-sm'
+                    ? isGamificationOn && cardMastery.currentTier.level === 11
+                      ? 'border-amber-400 dark:border-amber-400 shadow-md shadow-amber-500/25 -translate-y-0.5'
+                      : 'border-indigo-600 dark:border-indigo-400 shadow-md -translate-y-0.5'
+                    : isGamificationOn && cardMastery.currentTier.level === 11
+                    ? 'border-amber-400/80 dark:border-amber-500/70 shadow-xs shadow-amber-500/10 hover:border-amber-400 hover:-translate-y-0.5'
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-xs hover:-translate-y-0.5'
                 }`}
               >
                 {/* 1. Dedicated Course Cover Header Area */}
@@ -668,16 +740,30 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({ onNavigateTab }) => {
 
                     {/* Gamification Rank Badge & EXP (Active when gamification is ON) */}
                     {isGamificationOn && (
-                      <div className={`flex items-center justify-between gap-1 p-1.5 rounded-lg border text-[10px] ${
-                        cardMastery.currentTier.level >= 9
-                          ? 'bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-purple-500/10 border-amber-300/80 dark:border-amber-700/80 animate-pulse'
+                      <div className={`relative overflow-hidden flex items-center justify-between gap-1 p-1.5 rounded-lg border text-[10px] transition-all ${
+                        cardMastery.currentTier.level === 11
+                          ? 'bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-purple-500/20 border-amber-400 dark:border-amber-400 text-amber-900 dark:text-amber-200 shadow-xs'
+                          : cardMastery.currentTier.level >= 9
+                          ? 'bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-purple-500/10 border-amber-300/80 dark:border-amber-700/80'
                           : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/60'
                       }`}>
-                        <span className="inline-flex items-center gap-1 font-bold">
-                          <span>{cardMastery.currentTier.icon}</span>
+                        {/* High-tier continuous aura vapor glow */}
+                        {cardMastery.currentTier.level >= 8 && (
+                          <div
+                            className="absolute inset-0 pointer-events-none opacity-20 blur-xs animate-rank-vapor"
+                            style={{ background: cardMastery.currentTier.gradientBg }}
+                          />
+                        )}
+                        <span className="inline-flex items-center gap-1 font-bold relative z-10">
+                          <span className={cardMastery.currentTier.level >= 8 ? 'animate-rank-flame inline-block' : ''}>{cardMastery.currentTier.icon}</span>
                           <span className="font-mono">{cardMastery.currentTier.title}</span>
+                          {cardMastery.mythicStage && (
+                            <span className="text-[9px] font-black text-amber-600 dark:text-amber-300 font-mono">
+                              [{cardMastery.mythicStage.romanNumeral}] {cardMastery.mythicStage.starsDisplay}
+                            </span>
+                          )}
                         </span>
-                        <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
+                        <span className="font-mono font-bold text-amber-600 dark:text-amber-400 relative z-10">
                           {(c.mastery_points || 0).toLocaleString()} EXP
                         </span>
                       </div>
@@ -898,7 +984,7 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({ onNavigateTab }) => {
               </Button>
             </div>
           ) : (
-            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/30 border border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 text-xs text-slate-500">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/30 border border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
               <span className="flex items-center gap-1.5">
                 <Target className="w-3.5 h-3.5 text-indigo-500" />
                 <span>Khóa học chưa liên kết với Mục tiêu đếm ngược nào. Bấm "Sửa Khóa học" để gắn kỳ thi / deadline và kích hoạt ước tính tốc độ học!</span>
@@ -953,92 +1039,221 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({ onNavigateTab }) => {
             </div>
           )}
 
-          {/* COURSE GAMIFICATION MASTERY BANNER (10 RANKS TIERS) */}
+          {/* COURSE GAMIFICATION MASTERY BANNER (11 RANKS TIERS + RADIATING AURA & DYNAMIC MYTHIC SCALING) */}
           {isGamificationOn && (
-            <div className={`p-4 rounded-xl border transition-all ${
-              isCourseFonty
-                ? 'bg-black/25 backdrop-blur-md border-white/20 text-white'
-                : 'bg-gradient-to-r from-amber-500/5 via-purple-500/5 to-indigo-500/5 dark:from-amber-500/10 dark:via-purple-500/10 dark:to-indigo-500/10 border-amber-200/80 dark:border-amber-900/50'
-            } ${courseMasteryInfo.currentTier.level >= 9 ? 'ring-2 ring-amber-400/60 dark:ring-amber-400/40 shadow-md' : ''}`}>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                {/* Left: Rank Badge & Title */}
-                <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0 shadow-inner select-none ${
-                    courseMasteryInfo.currentTier.level >= 9
-                      ? 'bg-gradient-to-br from-amber-400 via-rose-500 to-purple-600 text-white animate-pulse'
-                      : courseMasteryInfo.currentTier.level >= 6
-                      ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white'
-                      : 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400'
-                  }`}>
-                    {courseMasteryInfo.currentTier.icon}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-xs uppercase font-extrabold tracking-wider px-2 py-0.5 rounded-full ${
-                        courseMasteryInfo.currentTier.level >= 9
-                          ? 'bg-amber-400 text-slate-950 font-black shadow-xs'
-                          : 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300'
-                      }`}>
-                        Tier {courseMasteryInfo.currentTier.level} / 10
-                      </span>
-                      <h4 className={`text-sm font-bold ${isCourseFonty ? 'text-white' : 'text-slate-900 dark:text-slate-100'}`}>
-                        {courseMasteryInfo.currentTier.title}
-                      </h4>
-                      {courseMasteryInfo.currentTier.level >= 9 && (
-                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-gradient-to-r from-rose-500 to-amber-500 text-white shadow-xs animate-bounce">
-                          {courseMasteryInfo.currentTier.level === 10 ? 'TUYỆT ĐỐI' : 'CHIẾN THẦN'}
-                        </span>
-                      )}
-                    </div>
-                    <p className={`text-xs mt-0.5 ${isCourseFonty ? 'text-white/80' : 'text-slate-500 dark:text-slate-400'}`}>
-                      {courseMasteryInfo.currentTier.description}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Right: EXP Numbers */}
-                <div className="text-left sm:text-right sm:shrink-0">
-                  <div className="flex items-baseline sm:justify-end gap-1.5">
-                    <span className={`text-xl font-extrabold font-mono ${isCourseFonty ? 'text-amber-300' : 'text-amber-600 dark:text-amber-400'}`}>
-                      {(courseDetail.mastery_points || 0).toLocaleString()}
-                    </span>
-                    <span className={`text-xs font-semibold ${isCourseFonty ? 'text-white/70' : 'text-slate-500'}`}>
-                      EXP Khóa học
-                    </span>
-                  </div>
-                  <div className={`text-[11px] font-mono mt-0.5 ${isCourseFonty ? 'text-white/70' : 'text-slate-500 dark:text-slate-400'}`}>
-                    {courseMasteryInfo.nextTier ? (
-                      <>
-                        Cần <strong className={isCourseFonty ? 'text-white' : 'text-slate-700 dark:text-slate-200'}>{courseMasteryInfo.xpNeededForNext.toLocaleString()} EXP</strong> để lên {courseMasteryInfo.nextTier.icon} {courseMasteryInfo.nextTier.title}
-                      </>
-                    ) : (
-                      <span className="text-amber-400 font-bold">★ Cảnh giới Tối thượng Vĩnh cửu!</span>
-                    )}
-                  </div>
-                </div>
+            <div className="relative group my-2">
+              {/* Continuous Radiating Aura Effect (Hiệu ứng Khí & Hào Quang toả ra liên tục) */}
+              <div className="absolute -inset-1.5 rounded-2xl pointer-events-none overflow-visible">
+                {/* Outward Radiating Wave 1 */}
+                <div
+                  className="absolute inset-0 rounded-2xl animate-rank-radiate-1"
+                  style={{
+                    backgroundColor: courseMasteryInfo.mythicStage?.auraColor || courseMasteryInfo.currentTier.color,
+                    boxShadow: `0 0 24px ${courseMasteryInfo.mythicStage?.auraColor || courseMasteryInfo.currentTier.color}80`,
+                  }}
+                />
+                {/* Outward Radiating Wave 2 (Staggered continuous flow) */}
+                <div
+                  className="absolute inset-0 rounded-2xl animate-rank-radiate-2"
+                  style={{
+                    backgroundColor: courseMasteryInfo.mythicStage?.auraColor || courseMasteryInfo.currentTier.color,
+                    boxShadow: `0 0 36px ${courseMasteryInfo.mythicStage?.auraColor || courseMasteryInfo.currentTier.color}60`,
+                  }}
+                />
+                {/* Swirling energy vapor / mist around edges */}
+                <div
+                  className="absolute -inset-1 rounded-2xl opacity-35 blur-md animate-rank-vapor"
+                  style={{
+                    background: courseMasteryInfo.currentTier.gradientBg,
+                  }}
+                />
               </div>
 
-              {/* EXP Progress Bar */}
-              <div className="mt-3">
-                <div className="flex items-center justify-between text-[11px] mb-1 font-mono">
-                  <span className={isCourseFonty ? 'text-white/80' : 'text-slate-600 dark:text-slate-400'}>
-                    Tiến độ Cày cuốc: {courseMasteryInfo.progressPercent}%
-                  </span>
-                  <span className={isCourseFonty ? 'text-white/80' : 'text-slate-600 dark:text-slate-400'}>
-                    {courseMasteryInfo.nextTier
-                      ? `${courseMasteryInfo.xpInCurrentTier.toLocaleString()} / ${(courseMasteryInfo.nextTier.min_xp - courseMasteryInfo.currentTier.min_xp).toLocaleString()} EXP`
-                      : 'Đỉnh cao Thần Vương'}
-                  </span>
+              {/* Main Banner Card */}
+              <div
+                className={`p-4 rounded-xl border-2 transition-all duration-500 relative overflow-hidden ${
+                  isCourseFonty
+                    ? 'bg-black/40 backdrop-blur-md border-white/20 text-white'
+                    : courseMasteryInfo.currentTier.level === 11
+                    ? 'bg-gradient-to-r from-amber-500/15 via-rose-500/15 to-purple-500/20 border-amber-400 dark:border-amber-400'
+                    : courseMasteryInfo.currentTier.level >= 9
+                    ? 'bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 dark:from-amber-950/40 dark:via-orange-950/40 dark:to-rose-950/40 border-amber-400/80 dark:border-amber-500/80'
+                    : 'bg-white/95 dark:bg-slate-900/95 border-slate-300 dark:border-slate-700'
+                }`}
+                style={{
+                  borderColor: courseMasteryInfo.mythicStage?.auraColor || (courseMasteryInfo.currentTier.level >= 6 ? courseMasteryInfo.currentTier.color : undefined),
+                  boxShadow: courseMasteryInfo.mythicStage
+                    ? courseMasteryInfo.mythicStage.boxShadow
+                    : courseMasteryInfo.currentTier.glowShadow,
+                }}
+              >
+                {/* Mythic Background Ambient Glow */}
+                {courseMasteryInfo.mythicStage && (
+                  <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-35">
+                    <div
+                      className="absolute -top-12 -right-12 w-56 h-56 rounded-full blur-2xl animate-pulse"
+                      style={{ backgroundColor: courseMasteryInfo.mythicStage.auraColor }}
+                    />
+                    <div
+                      className="absolute -bottom-12 -left-12 w-56 h-56 rounded-full blur-2xl animate-pulse"
+                      style={{ backgroundColor: '#a855f7', animationDuration: `${courseMasteryInfo.mythicStage.pulseSpeedSec}s` }}
+                    />
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
+                  {/* Left: Rank Badge & Title with continuous radiating icon aura */}
+                  <div className="flex items-center gap-3">
+                    <div className="relative shrink-0">
+                      {/* Radiating aura halo behind icon */}
+                      <div
+                        className="absolute -inset-2 rounded-2xl animate-rank-radiate-1 pointer-events-none opacity-60"
+                        style={{
+                          backgroundColor: courseMasteryInfo.mythicStage?.auraColor || courseMasteryInfo.currentTier.color,
+                          filter: 'blur(8px)',
+                        }}
+                      />
+                      <div
+                        className="absolute -inset-1 rounded-2xl animate-rank-vapor pointer-events-none opacity-50"
+                        style={{
+                          background: courseMasteryInfo.currentTier.gradientBg,
+                          filter: 'blur(4px)',
+                        }}
+                      />
+                      <div
+                        className={`relative z-10 w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-inner select-none transition-all duration-300 ${
+                          courseMasteryInfo.currentTier.level === 11
+                            ? 'bg-gradient-to-br from-amber-400 via-rose-500 via-purple-600 to-cyan-400 text-white animate-rank-flame shadow-md ring-2 ring-amber-300'
+                            : courseMasteryInfo.currentTier.level >= 9
+                            ? 'bg-gradient-to-br from-amber-400 via-rose-500 to-purple-600 text-white animate-rank-flame'
+                            : courseMasteryInfo.currentTier.level >= 6
+                            ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white'
+                            : 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400'
+                        }`}
+                      >
+                        <span className="animate-rank-vapor inline-block">{courseMasteryInfo.currentTier.icon}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                          className={`text-xs uppercase font-extrabold tracking-wider px-2 py-0.5 rounded-full ${
+                            courseMasteryInfo.currentTier.level === 11
+                              ? 'bg-gradient-to-r from-amber-400 via-rose-500 to-purple-600 text-white font-black shadow-xs'
+                              : courseMasteryInfo.currentTier.level >= 9
+                              ? 'bg-amber-400 text-slate-950 font-black shadow-xs'
+                              : 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300'
+                          }`}
+                        >
+                          Tier {courseMasteryInfo.currentTier.level} / 11
+                        </span>
+                        <h4 className={`text-sm font-bold ${isCourseFonty ? 'text-white' : 'text-slate-900 dark:text-slate-100'}`}>
+                          {courseMasteryInfo.currentTier.title}
+                        </h4>
+                        {courseMasteryInfo.mythicStage ? (
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 text-white shadow-xs flex items-center gap-1 animate-pulse">
+                            <span>{courseMasteryInfo.mythicStage.stageTitle}</span>
+                            <span className="opacity-90">• {courseMasteryInfo.mythicStage.subtitle}</span>
+                            <span>{courseMasteryInfo.mythicStage.starsDisplay}</span>
+                          </span>
+                        ) : (
+                          courseMasteryInfo.currentTier.level >= 9 && (
+                            <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-gradient-to-r from-rose-500 to-amber-500 text-white shadow-xs animate-bounce">
+                              {courseMasteryInfo.currentTier.level === 10 ? 'TUYỆT ĐỐI' : 'CHIẾN THẦN'}
+                            </span>
+                          )
+                        )}
+                      </div>
+                      <p className={`text-xs mt-0.5 ${isCourseFonty ? 'text-white/80' : 'text-slate-500 dark:text-slate-400'}`}>
+                        {courseMasteryInfo.mythicStage ? (
+                          <span className="inline-flex items-center gap-1.5 font-medium text-amber-700 dark:text-amber-300">
+                            <Sparkles className="w-3.5 h-3.5 shrink-0 text-amber-500 animate-spin" style={{ animationDuration: '6s' }} />
+                            <span>{courseMasteryInfo.mythicStage.auraName}</span>
+                            <span className="opacity-70">({courseMasteryInfo.mythicStage.surplusXP.toLocaleString()} EXP vượt mốc Thần Thoại)</span>
+                          </span>
+                        ) : (
+                          courseMasteryInfo.currentTier.description
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right: EXP Numbers & Reset Button */}
+                  <div className="text-left sm:text-right sm:shrink-0 flex sm:flex-col items-baseline sm:items-end justify-between sm:justify-center gap-1.5">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleResetCourseMastery(courseDetail.id)}
+                        className="p-1 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
+                        title="Đặt lại điểm Rank và EXP của khóa học này về 0"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </button>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className={`text-xl font-extrabold font-mono ${
+                          courseMasteryInfo.currentTier.level === 11
+                            ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600'
+                            : isCourseFonty
+                            ? 'text-amber-300'
+                            : 'text-amber-600 dark:text-amber-400'
+                        }`}>
+                          {(courseDetail.mastery_points || 0).toLocaleString()}
+                        </span>
+                        <span className={`text-xs font-semibold ${isCourseFonty ? 'text-white/70' : 'text-slate-500 dark:text-slate-400'}`}>
+                          EXP Khóa học
+                        </span>
+                      </div>
+                    </div>
+                    <div className={`text-[11px] font-mono mt-0.5 ${isCourseFonty ? 'text-white/70' : 'text-slate-500 dark:text-slate-400'}`}>
+                      {courseMasteryInfo.nextTier ? (
+                        <>
+                          Cần <strong className={isCourseFonty ? 'text-white' : 'text-slate-700 dark:text-slate-200'}>{courseMasteryInfo.xpNeededForNext.toLocaleString()} EXP</strong> để lên {courseMasteryInfo.nextTier.icon} {courseMasteryInfo.nextTier.title}
+                        </>
+                      ) : courseMasteryInfo.mythicStage ? (
+                        courseMasteryInfo.mythicStage.nextStageXP ? (
+                          <span>
+                            Cần <strong className="text-amber-500 dark:text-amber-400 font-bold">{(courseMasteryInfo.mythicStage.nextStageXP - (courseDetail.mastery_points || 0)).toLocaleString()} EXP</strong> thăng lên Tầng {courseMasteryInfo.mythicStage.stage + 1}
+                          </span>
+                        ) : (
+                          <span className="text-amber-400 font-bold">★ Cảnh giới Thần Tối Thượng Vĩnh Hằng!</span>
+                        )
+                      ) : (
+                        <span className="text-amber-400 font-bold">★ Cảnh giới Tối thượng Vĩnh cửu!</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className={`w-full h-2 rounded-full overflow-hidden ${isCourseFonty ? 'bg-white/20' : 'bg-slate-200 dark:bg-slate-800'}`}>
-                  <div
-                    className={`h-full rounded-full transition-all duration-700 ${
-                      courseMasteryInfo.currentTier.level >= 9
-                        ? 'bg-gradient-to-r from-amber-400 via-rose-500 to-purple-500 animate-pulse'
-                        : 'bg-gradient-to-r from-amber-500 to-indigo-500'
-                    }`}
-                    style={{ width: `${courseMasteryInfo.progressPercent}%` }}
-                  />
+
+                {/* EXP Progress Bar */}
+                <div className="mt-3 relative z-10">
+                  <div className="flex items-center justify-between text-[11px] mb-1 font-mono">
+                    <span className={isCourseFonty ? 'text-white/80' : 'text-slate-600 dark:text-slate-400'}>
+                      {courseMasteryInfo.mythicStage
+                        ? `Tiến độ ${courseMasteryInfo.mythicStage.stageTitle}: ${courseMasteryInfo.mythicStage.stageProgressPercent}%`
+                        : `Tiến độ Cày cuốc: ${courseMasteryInfo.progressPercent}%`}
+                    </span>
+                    <span className={isCourseFonty ? 'text-white/80' : 'text-slate-600 dark:text-slate-400'}>
+                      {courseMasteryInfo.nextTier
+                        ? `${courseMasteryInfo.xpInCurrentTier.toLocaleString()} / ${(courseMasteryInfo.nextTier.min_xp - courseMasteryInfo.currentTier.min_xp).toLocaleString()} EXP`
+                        : courseMasteryInfo.mythicStage
+                        ? courseMasteryInfo.mythicStage.nextStageXP
+                          ? `${(courseMasteryInfo.mythicStage.surplusXP).toLocaleString()} / ${(courseMasteryInfo.mythicStage.nextStageXP - 60000).toLocaleString()} EXP Thần Cảnh`
+                          : '★ Đỉnh Phong Cảnh Giới Tối Cao'
+                        : 'Đỉnh cao Thần Vương'}
+                    </span>
+                  </div>
+                  <div className={`w-full h-2.5 rounded-full overflow-hidden ${isCourseFonty ? 'bg-white/20' : 'bg-slate-200 dark:bg-slate-800'}`}>
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ${
+                        courseMasteryInfo.currentTier.level === 11
+                          ? 'bg-gradient-to-r from-amber-400 via-rose-500 via-purple-500 to-cyan-400 animate-pulse'
+                          : courseMasteryInfo.currentTier.level >= 9
+                          ? 'bg-gradient-to-r from-amber-400 via-rose-500 to-purple-500 animate-pulse'
+                          : 'bg-gradient-to-r from-amber-500 to-indigo-500'
+                      }`}
+                      style={{ width: `${courseMasteryInfo.mythicStage ? courseMasteryInfo.mythicStage.stageProgressPercent : courseMasteryInfo.progressPercent}%` }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1087,7 +1302,7 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({ onNavigateTab }) => {
                   <Layers className="w-3.5 h-3.5 text-indigo-500" />
                   <span>Lưới Ma trận Bài học ({courseDetail.completed_nodes_count}/{courseDetail.total_nodes_count} hoàn thành - {courseCoverConfig.grid_shape === 'SQUARE' ? 'Hình vuông' : 'Hình tròn'} / {courseCoverConfig.grid_fill === 'OUTLINE' ? 'Viền' : 'Đầy'})</span>
                 </span>
-                <span className="text-[11px] font-mono text-slate-500">{courseDetail.overall_progress}%</span>
+                <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">{courseDetail.overall_progress}%</span>
               </div>
               <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1">
                 {Array.from({ length: Math.min(courseDetail.total_nodes_count, 120) }).map((_, idx) => {
@@ -1264,6 +1479,7 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({ onNavigateTab }) => {
         fixedSchedules={fixedSchedules}
         onSaveNode={handleSaveNode}
         onCreateTask={handleCreateStudyTask}
+        onCreateEvent={handleCreateScheduleEvent}
       />
 
       {/* Legacy/Quick Study Task Modal */}
@@ -1273,6 +1489,7 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({ onNavigateTab }) => {
         onClose={() => setNodeForTask(null)}
         goals={goals}
         onConfirm={handleCreateStudyTask}
+        onCreateEvent={handleCreateScheduleEvent}
       />
 
       {/* Add Course Modal */}

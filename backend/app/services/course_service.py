@@ -206,6 +206,45 @@ class CourseService:
         return node
 
     @classmethod
+    def calculate_node_exp(cls, node: CourseNode) -> int:
+        dur = node.duration or 30
+        if dur < 20:
+            exp = 15
+        elif dur <= 45:
+            exp = 30
+        else:
+            exp = 50
+        if getattr(node, 'type', '') in ["PRACTICE", "RESOURCE"]:
+            exp += 20
+        return exp
+
+    @classmethod
+    def update_course_mastery_level(cls, course: Course):
+        pts = course.mastery_points or 0
+        if pts >= 60000:
+            course.mastery_level = 11  # Vô Thượng Thần Thoại (Rank 11)
+        elif pts >= 40000:
+            course.mastery_level = 10  # Tuyệt Đối Thần Vương
+        elif pts >= 25000:
+            course.mastery_level = 9   # Chiến Thần Học Thuật
+        elif pts >= 16000:
+            course.mastery_level = 8   # Đại Tông Sư
+        elif pts >= 10000:
+            course.mastery_level = 7   # Tinh Anh Đỉnh Cao
+        elif pts >= 6000:
+            course.mastery_level = 6   # Kim Cương Chuyên Sâu
+        elif pts >= 3500:
+            course.mastery_level = 5   # Bạch Kim Tập Trung
+        elif pts >= 1800:
+            course.mastery_level = 4   # Vàng Kiên Trì
+        elif pts >= 750:
+            course.mastery_level = 3   # Bạc Rèn Luyện
+        elif pts >= 250:
+            course.mastery_level = 2   # Đồng Khắc Kỷ
+        else:
+            course.mastery_level = 1   # Tập Sự
+
+    @classmethod
     def update_node(cls, db: Session, node_id: int, node_in: CourseNodeUpdate) -> Optional[CourseNode]:
         node = db.query(CourseNode).filter(CourseNode.id == node_id).first()
         if not node:
@@ -235,42 +274,22 @@ class CourseService:
         for field, val in update_data.items():
             setattr(node, field, val)
 
-        # Gamification: Award EXP when completing a node
-        if old_status != "COMPLETED" and node.status == "COMPLETED":
-            dur = node.duration or 30
-            if dur < 20:
-                gained_exp = 15
-            elif dur <= 45:
-                gained_exp = 30
-            else:
-                gained_exp = 50
-            if getattr(node, 'type', '') in ["PRACTICE", "RESOURCE"]:
-                gained_exp += 20
+        # Gamification: Award EXP on completion, deduct on unchecking (fix duplicate points exploit)
+        is_completed_now = (node.status == "COMPLETED")
+        was_completed = (old_status == "COMPLETED")
 
+        if not was_completed and is_completed_now:
+            node_exp = cls.calculate_node_exp(node)
             course = db.query(Course).filter(Course.id == node.course_id).first()
             if course:
-                course.mastery_points = (course.mastery_points or 0) + gained_exp
-                pts = course.mastery_points
-                if pts >= 40000:
-                    course.mastery_level = 10  # Tuyệt Đối Thần Vương
-                elif pts >= 25000:
-                    course.mastery_level = 9   # Chiến Thần Học Thuật
-                elif pts >= 16000:
-                    course.mastery_level = 8   # Đại Tông Sư
-                elif pts >= 10000:
-                    course.mastery_level = 7   # Tinh Anh Đỉnh Cao
-                elif pts >= 6000:
-                    course.mastery_level = 6   # Kim Cương Chuyên Sâu
-                elif pts >= 3500:
-                    course.mastery_level = 5   # Bạch Kim Tập Trung
-                elif pts >= 1800:
-                    course.mastery_level = 4   # Vàng Kiên Trì
-                elif pts >= 750:
-                    course.mastery_level = 3   # Bạc Rèn Luyện
-                elif pts >= 250:
-                    course.mastery_level = 2   # Đồng Khắc Kỷ
-                else:
-                    course.mastery_level = 1   # Đồng Khởi Đầu
+                course.mastery_points = (course.mastery_points or 0) + node_exp
+                cls.update_course_mastery_level(course)
+        elif was_completed and not is_completed_now:
+            node_exp = cls.calculate_node_exp(node)
+            course = db.query(Course).filter(Course.id == node.course_id).first()
+            if course:
+                course.mastery_points = max(0, (course.mastery_points or 0) - node_exp)
+                cls.update_course_mastery_level(course)
 
         node.updated_at = datetime.utcnow()
         db.commit()
@@ -328,10 +347,44 @@ class CourseService:
         if not node:
             return False
         parent_id = node.parent_id
+        course_id = node.course_id
+        was_completed = (node.status == "COMPLETED")
+        node_exp = cls.calculate_node_exp(node) if was_completed else 0
+
         db.delete(node)
         db.commit()
+
+        if was_completed and course_id:
+            course = db.query(Course).filter(Course.id == course_id).first()
+            if course:
+                course.mastery_points = max(0, (course.mastery_points or 0) - node_exp)
+                cls.update_course_mastery_level(course)
+                db.commit()
+
         cls._recalculate_parent_progress(db, parent_id)
         return True
+
+    @classmethod
+    def reset_course_mastery(cls, db: Session, course_id: int) -> Optional[Course]:
+        course = db.query(Course).filter(Course.id == course_id).first()
+        if not course:
+            return None
+        course.mastery_points = 0
+        course.mastery_level = 1
+        db.commit()
+        db.refresh(course)
+        return course
+
+    @classmethod
+    def reset_all_course_mastery(cls, db: Session) -> int:
+        courses = db.query(Course).all()
+        count = 0
+        for c in courses:
+            c.mastery_points = 0
+            c.mastery_level = 1
+            count += 1
+        db.commit()
+        return count
 
     @classmethod
     def create_study_task_from_lesson(cls, db: Session, req: CreateStudyTaskRequest) -> Optional[TaskOut]:

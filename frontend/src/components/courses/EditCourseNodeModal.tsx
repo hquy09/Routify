@@ -29,6 +29,21 @@ interface EditCourseNodeModalProps {
     subtask_titles?: string[];
     notes?: string;
   }) => Promise<void>;
+  onCreateEvent?: (data: {
+    title: string;
+    course_id: number;
+    course_node_id?: number;
+    day_of_week: number;
+    start_time: string;
+    end_time: string;
+    category?: string;
+    color?: string;
+    location?: string;
+    description?: string;
+    create_attached_task?: boolean;
+    task_priority?: string;
+    task_difficulty?: number;
+  }) => Promise<void>;
 }
 
 export const EditCourseNodeModal: React.FC<EditCourseNodeModalProps> = ({
@@ -39,6 +54,7 @@ export const EditCourseNodeModal: React.FC<EditCourseNodeModalProps> = ({
   fixedSchedules = [],
   onSaveNode,
   onCreateTask,
+  onCreateEvent,
 }) => {
   // Left Column - Node States
   const [title, setTitle] = useState('');
@@ -50,6 +66,9 @@ export const EditCourseNodeModal: React.FC<EditCourseNodeModalProps> = ({
   const [notes, setNotes] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
   const [documentUrl, setDocumentUrl] = useState('');
+
+  // Mode Switcher: Task vs Event
+  const [scheduleMode, setScheduleMode] = useState<'TASK' | 'EVENT'>('TASK');
 
   // Right Column - Smart Task States
   const [taskTitle, setTaskTitle] = useState('');
@@ -63,6 +82,19 @@ export const EditCourseNodeModal: React.FC<EditCourseNodeModalProps> = ({
   const [isCreatingTask, setIsCreatingTask] = useState(false);
   const [isSavingNode, setIsSavingNode] = useState(false);
   const [taskSuccessMsg, setTaskSuccessMsg] = useState<string | null>(null);
+
+  // Right Column - Event (Fixed Schedule) States
+  const [eventTitle, setEventTitle] = useState('');
+  const [eventDayOfWeek, setEventDayOfWeek] = useState<number>(0);
+  const [eventStartTime, setEventStartTime] = useState('19:30');
+  const [eventEndTime, setEventEndTime] = useState('21:00');
+  const [eventCategory, setEventCategory] = useState<string>('STUDY');
+  const [eventColor, setEventColor] = useState<string>('#10b981');
+  const [eventLocation, setEventLocation] = useState('');
+  const [eventDescription, setEventDescription] = useState('');
+  const [eventCreateAttachedTask, setEventCreateAttachedTask] = useState<boolean>(true);
+  const [isCreatingEvent, setIsCreatingEvent] = useState(false);
+  const [eventSuccessMsg, setEventSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && node) {
@@ -86,9 +118,23 @@ export const EditCourseNodeModal: React.FC<EditCourseNodeModalProps> = ({
       setTaskGoalId(undefined);
       setTaskProjectId(undefined);
       setTaskFixedScheduleId(undefined);
-      setSubtasks(['Đọc lý thuyết & slide', 'Làm bài tập vận dụng']);
+      setSubtasks([]);
       setNewSubtaskInput('');
       setTaskSuccessMsg(null);
+
+      // Event defaults
+      setEventTitle(`Lịch học: ${node.title}`);
+      const jsDow = new Date().getDay();
+      setEventDayOfWeek(jsDow === 0 ? 6 : jsDow - 1);
+      setEventStartTime('19:30');
+      setEventEndTime('21:00');
+      setEventCategory('STUDY');
+      setEventColor('#10b981');
+      setEventLocation('');
+      setEventDescription(`Buổi học môn ${node.title}`);
+      setEventCreateAttachedTask(true);
+      setEventSuccessMsg(null);
+      setScheduleMode('TASK');
     }
   }, [isOpen, node]);
 
@@ -171,6 +217,46 @@ export const EditCourseNodeModal: React.FC<EditCourseNodeModalProps> = ({
       alert(err.message || 'Lỗi khi lên lịch task');
     } finally {
       setIsCreatingTask(false);
+    }
+  };
+
+  const handleCreateEvent = async () => {
+    if (!eventTitle.trim()) {
+      alert('Vui lòng nhập tiêu đề sự kiện / lịch học.');
+      return;
+    }
+    if (eventStartTime >= eventEndTime) {
+      alert('Giờ bắt đầu phải trước giờ kết thúc!');
+      return;
+    }
+    if (!onCreateEvent) {
+      alert('Tính năng tạo sự kiện chưa được kích hoạt ở màn hình này.');
+      return;
+    }
+    setIsCreatingEvent(true);
+    setEventSuccessMsg(null);
+    try {
+      await onCreateEvent({
+        title: eventTitle.trim(),
+        course_id: node.course_id,
+        course_node_id: node.id,
+        day_of_week: Number(eventDayOfWeek),
+        start_time: eventStartTime,
+        end_time: eventEndTime,
+        category: eventCategory,
+        color: eventColor,
+        location: eventLocation.trim() || undefined,
+        description: eventDescription.trim() || undefined,
+        create_attached_task: eventCreateAttachedTask,
+        task_priority: taskPriority,
+        task_difficulty: difficulty,
+      });
+      setEventSuccessMsg('✓ Đã tạo Sự kiện / Lịch học thành công vào Calendar!');
+      setTimeout(() => setEventSuccessMsg(null), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Lỗi khi tạo sự kiện lịch học');
+    } finally {
+      setIsCreatingEvent(false);
     }
   };
 
@@ -378,216 +464,418 @@ export const EditCourseNodeModal: React.FC<EditCourseNodeModalProps> = ({
             </div>
           </div>
 
-          {/* RIGHT COLUMN: Smart Study Task Integration (Gộp tính năng Task thông minh) */}
-          <div className="space-y-4 text-xs bg-emerald-50/20 dark:bg-emerald-950/10 p-4 rounded-xl border border-emerald-200/60 dark:border-emerald-800/40">
-            <div className="flex items-center justify-between pb-1.5 border-b border-emerald-200/40 dark:border-emerald-800/40">
-              <span className="font-bold text-xs text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                <span>Lên lịch Task thông minh (Smart Task)</span>
-              </span>
-              <Badge variant="success" className="text-[10px]">Tự động đồng bộ Calendar</Badge>
-            </div>
-
-            {taskSuccessMsg && (
-              <div className="p-2.5 rounded-lg bg-emerald-100/70 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 text-xs font-semibold flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>{taskSuccessMsg}</span>
-              </div>
-            )}
-
-            {/* Task Title */}
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                Tiêu đề nhiệm vụ
-              </label>
-              <Input
-                type="text"
-                value={taskTitle}
-                onChange={(e) => setTaskTitle(e.target.value)}
-                placeholder="VD: Học Toán: Hàm số"
-                className="text-xs"
-              />
-            </div>
-
-            {/* Due Datetime & Quick Shortcuts */}
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                Ngày & Giờ học:
-              </label>
-              <Input
-                type="datetime-local"
-                value={taskDueDatetime}
-                onChange={(e) => setTaskDueDatetime(e.target.value)}
-                className="text-xs mb-1.5"
-              />
-
-              {/* 1-touch Quick Slots */}
-              <div className="flex flex-wrap items-center gap-1 text-[10px]">
-                <span className="text-slate-400">Chọn nhanh:</span>
+          {/* RIGHT COLUMN: Smart Study Task & Event Integration */}
+          <div className={`space-y-4 text-xs p-4 rounded-xl border transition-colors ${
+            scheduleMode === 'TASK'
+              ? 'bg-emerald-50/20 dark:bg-emerald-950/10 border-emerald-200/60 dark:border-emerald-800/40'
+              : 'bg-indigo-50/20 dark:bg-indigo-950/10 border-indigo-200/60 dark:border-indigo-800/40'
+          }`}>
+            {/* Header Switcher: Task vs Event */}
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-slate-800/60 gap-2">
+              <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                 <button
                   type="button"
-                  onClick={() => handleSetQuickTime(8, 0)}
-                  className="px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
+                  onClick={() => setScheduleMode('TASK')}
+                  className={`px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    scheduleMode === 'TASK'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
                 >
-                  🌅 Sáng 08:00
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Nhiệm vụ (Task)</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleSetQuickTime(14, 0)}
-                  className="px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
+                  onClick={() => setScheduleMode('EVENT')}
+                  className={`px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    scheduleMode === 'EVENT'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
                 >
-                  ☀️ Chiều 14:00
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSetQuickTime(20, 0)}
-                  className="px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer font-semibold text-emerald-700 dark:text-emerald-300"
-                >
-                  🌙 Tối 20:00
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSetInHours(2)}
-                  className="px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
-                >
-                  ⚡ +2h nữa
+                  <Calendar className="w-3.5 h-3.5 text-indigo-200" />
+                  <span>Sự kiện / Lịch học (Event)</span>
                 </button>
               </div>
+              <Badge variant={scheduleMode === 'TASK' ? 'success' : 'outline'} className="text-[10px]">
+                {scheduleMode === 'TASK' ? 'Đồng bộ Calendar' : 'Lịch định kỳ'}
+              </Badge>
             </div>
 
-            {/* Priority & Fixed Schedule Attachment */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                  Mức ưu tiên
-                </label>
-                <select
-                  value={taskPriority}
-                  onChange={(e) => setTaskPriority(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-slate-100 text-xs"
-                >
-                  <option value="LOW">Thấp (LOW)</option>
-                  <option value="MEDIUM">Trung bình (MEDIUM)</option>
-                  <option value="HIGH">Ưu tiên cao (HIGH)</option>
-                  <option value="URGENT">Khẩn cấp (URGENT)</option>
-                </select>
-              </div>
+            {/* TAB 1: SMART TASK */}
+            {scheduleMode === 'TASK' ? (
+              <div className="space-y-4">
+                {taskSuccessMsg && (
+                  <div className="p-2.5 rounded-lg bg-emerald-100/70 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 text-xs font-semibold flex items-center gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{taskSuccessMsg}</span>
+                  </div>
+                )}
 
-              <div>
-                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                  Đính kèm Lịch cố định:
-                </label>
-                <select
-                  value={taskFixedScheduleId || ''}
-                  onChange={(e) => setTaskFixedScheduleId(e.target.value ? Number(e.target.value) : undefined)}
-                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-slate-100 text-xs"
-                >
-                  <option value="">(Không đính kèm lịch)</option>
-                  {fixedSchedules.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.icon || '📌'} {s.title} ({s.start_time} - {s.end_time})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Linked Goal / Project */}
-            {goals.length > 0 && (
-              <div className="grid grid-cols-2 gap-3">
+                {/* Task Title */}
                 <div>
                   <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                    Mục tiêu liên kết
+                    Tiêu đề nhiệm vụ
                   </label>
-                  <select
-                    value={taskGoalId || ''}
-                    onChange={(e) => {
-                      setTaskGoalId(e.target.value ? Number(e.target.value) : undefined);
-                      setTaskProjectId(undefined);
-                    }}
-                    className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-slate-100 text-xs"
-                  >
-                    <option value="">(Không liên kết)</option>
-                    {goals.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.title}
-                      </option>
-                    ))}
-                  </select>
+                  <Input
+                    type="text"
+                    value={taskTitle}
+                    onChange={(e) => setTaskTitle(e.target.value)}
+                    placeholder="VD: Học Toán: Hàm số"
+                    className="text-xs"
+                  />
                 </div>
 
+                {/* Due Datetime & Quick Shortcuts */}
                 <div>
                   <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                    Dự án con
+                    Ngày & Giờ học:
                   </label>
-                  <select
-                    value={taskProjectId || ''}
-                    onChange={(e) => setTaskProjectId(e.target.value ? Number(e.target.value) : undefined)}
-                    disabled={availableProjects.length === 0}
-                    className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-slate-100 text-xs disabled:opacity-50"
-                  >
-                    <option value="">(Không có dự án)</option>
-                    {availableProjects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            )}
+                  <Input
+                    type="datetime-local"
+                    value={taskDueDatetime}
+                    onChange={(e) => setTaskDueDatetime(e.target.value)}
+                    className="text-xs mb-1.5"
+                  />
 
-            {/* Subtasks */}
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                Các bước thực hiện nhỏ (Subtasks):
-              </label>
-              <div className="space-y-1.5 max-h-28 overflow-y-auto pr-1">
-                {subtasks.map((st, i) => (
-                  <div key={i} className="flex items-center justify-between p-1.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs">
-                    <span className="truncate">• {st}</span>
+                  {/* 1-touch Quick Slots */}
+                  <div className="flex flex-wrap items-center gap-1 text-[10px]">
+                    <span className="text-slate-400">Chọn nhanh:</span>
                     <button
                       type="button"
-                      onClick={() => handleRemoveSubtask(i)}
-                      className="text-slate-400 hover:text-rose-500 ml-1"
+                      onClick={() => handleSetQuickTime(8, 0)}
+                      className="px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      🌅 Sáng 08:00
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSetQuickTime(14, 0)}
+                      className="px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
+                    >
+                      ☀️ Chiều 14:00
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSetQuickTime(20, 0)}
+                      className="px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer font-semibold text-emerald-700 dark:text-emerald-300"
+                    >
+                      🌙 Tối 20:00
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSetInHours(2)}
+                      className="px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
+                    >
+                      ⚡ +2h nữa
                     </button>
                   </div>
-                ))}
-              </div>
+                </div>
 
-              <div className="flex items-center gap-2 mt-1.5">
-                <Input
-                  type="text"
-                  value={newSubtaskInput}
-                  onChange={(e) => setNewSubtaskInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddSubtask();
-                    }
-                  }}
-                  placeholder="+ Thêm bước làm bài..."
-                  className="text-xs h-7"
-                />
-                <Button type="button" variant="outline" size="sm" onClick={handleAddSubtask} className="h-7 text-xs">
-                  Thêm
+                {/* Priority & Fixed Schedule Attachment */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                      Mức ưu tiên
+                    </label>
+                    <select
+                      value={taskPriority}
+                      onChange={(e) => setTaskPriority(e.target.value)}
+                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-slate-100 text-xs"
+                    >
+                      <option value="LOW">Thấp (LOW)</option>
+                      <option value="MEDIUM">Trung bình (MEDIUM)</option>
+                      <option value="HIGH">Ưu tiên cao (HIGH)</option>
+                      <option value="URGENT">Khẩn cấp (URGENT)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                      Đính kèm Lịch cố định:
+                    </label>
+                    <select
+                      value={taskFixedScheduleId || ''}
+                      onChange={(e) => setTaskFixedScheduleId(e.target.value ? Number(e.target.value) : undefined)}
+                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-slate-100 text-xs"
+                    >
+                      <option value="">(Không đính kèm lịch)</option>
+                      {fixedSchedules.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.icon || '📌'} {s.title} ({s.start_time} - {s.end_time})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Linked Goal / Project */}
+                {goals.length > 0 && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                        Mục tiêu liên kết
+                      </label>
+                      <select
+                        value={taskGoalId || ''}
+                        onChange={(e) => {
+                          setTaskGoalId(e.target.value ? Number(e.target.value) : undefined);
+                          setTaskProjectId(undefined);
+                        }}
+                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-slate-100 text-xs"
+                      >
+                        <option value="">(Không liên kết)</option>
+                        {goals.map((g) => (
+                          <option key={g.id} value={g.id}>
+                            {g.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                        Dự án con
+                      </label>
+                      <select
+                        value={taskProjectId || ''}
+                        onChange={(e) => setTaskProjectId(e.target.value ? Number(e.target.value) : undefined)}
+                        disabled={availableProjects.length === 0}
+                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-slate-100 text-xs disabled:opacity-50"
+                      >
+                        <option value="">(Không có dự án)</option>
+                        {availableProjects.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {/* Subtasks */}
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                    Các bước thực hiện nhỏ (Subtasks):
+                  </label>
+                  <div className="space-y-1.5 max-h-28 overflow-y-auto pr-1">
+                    {subtasks.map((st, i) => (
+                      <div key={i} className="flex items-center justify-between p-1.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs">
+                        <span className="truncate">• {st}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSubtask(i)}
+                          className="text-slate-400 hover:text-rose-500 ml-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <Input
+                      type="text"
+                      value={newSubtaskInput}
+                      onChange={(e) => setNewSubtaskInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddSubtask();
+                        }
+                      }}
+                      placeholder="+ Thêm bước làm bài..."
+                      className="text-xs h-7"
+                    />
+                    <Button type="button" variant="outline" size="sm" onClick={handleAddSubtask} className="h-7 text-xs">
+                      Thêm
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Button Create Task Right Here */}
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={handleCreateSmartTask}
+                  disabled={isCreatingTask}
+                  className="w-full justify-center bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-md shadow-emerald-600/20"
+                >
+                  <Sparkles className="w-3.5 h-3.5 mr-1.5 text-amber-300" />
+                  <span>{isCreatingTask ? 'Đang lên lịch...' : 'Lên lịch Task học bài này'}</span>
                 </Button>
               </div>
-            </div>
+            ) : (
+              /* TAB 2: FIXED SCHEDULE / EVENT */
+              <div className="space-y-4">
+                {eventSuccessMsg && (
+                  <div className="p-2.5 rounded-lg bg-indigo-100/70 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-200 text-xs font-semibold flex items-center gap-2">
+                    <Check className="w-4 h-4 text-indigo-600 shrink-0" />
+                    <span>{eventSuccessMsg}</span>
+                  </div>
+                )}
 
-            {/* Button Create Task Right Here */}
-            <Button
-              type="button"
-              variant="primary"
-              onClick={handleCreateSmartTask}
-              disabled={isCreatingTask}
-              className="w-full justify-center bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-md shadow-emerald-600/20"
-            >
-              <Sparkles className="w-3.5 h-3.5 mr-1.5 text-amber-300" />
-              <span>{isCreatingTask ? 'Đang lên lịch...' : 'Lên lịch Task học bài này'}</span>
-            </Button>
+                {/* Event Title */}
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                    Tên buổi học / Sự kiện
+                  </label>
+                  <Input
+                    type="text"
+                    value={eventTitle}
+                    onChange={(e) => setEventTitle(e.target.value)}
+                    placeholder="VD: Lịch học: Hàm số"
+                    className="text-xs"
+                  />
+                </div>
+
+                {/* Day of Week Selector */}
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                    Thứ trong tuần lặp lại:
+                  </label>
+                  <div className="grid grid-cols-7 gap-1">
+                    {[
+                      { id: 0, label: 'T2' },
+                      { id: 1, label: 'T3' },
+                      { id: 2, label: 'T4' },
+                      { id: 3, label: 'T5' },
+                      { id: 4, label: 'T6' },
+                      { id: 5, label: 'T7' },
+                      { id: 6, label: 'CN' },
+                    ].map((d) => (
+                      <button
+                        key={d.id}
+                        type="button"
+                        onClick={() => setEventDayOfWeek(d.id)}
+                        className={`py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer ${
+                          eventDayOfWeek === d.id
+                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-2xs'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-indigo-400'
+                        }`}
+                      >
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Time range & Shortcuts */}
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                    Thời gian diễn ra:
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 mb-1.5">
+                    <div>
+                      <label className="block text-[10px] text-slate-500 mb-0.5">Bắt đầu:</label>
+                      <input
+                        type="time"
+                        value={eventStartTime}
+                        onChange={(e) => setEventStartTime(e.target.value)}
+                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-1.5 text-xs text-slate-900 dark:text-slate-100 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-500 mb-0.5">Kết thúc:</label>
+                      <input
+                        type="time"
+                        value={eventEndTime}
+                        onChange={(e) => setEventEndTime(e.target.value)}
+                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-1.5 text-xs text-slate-900 dark:text-slate-100 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Quick time slot presets */}
+                  <div className="flex flex-wrap items-center gap-1 text-[10px]">
+                    <span className="text-slate-400">Chọn nhanh:</span>
+                    <button
+                      type="button"
+                      onClick={() => { setEventStartTime('08:00'); setEventEndTime('10:00'); }}
+                      className="px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer"
+                    >
+                      🌅 Sáng 08-10h
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setEventStartTime('14:00'); setEventEndTime('16:00'); }}
+                      className="px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer"
+                    >
+                      ☀️ Chiều 14-16h
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setEventStartTime('19:30'); setEventEndTime('21:00'); }}
+                      className="px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer font-semibold text-indigo-600 dark:text-indigo-400"
+                    >
+                      🌙 Tối 19:30-21h
+                    </button>
+                  </div>
+                </div>
+
+                {/* Location & Category */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                      Địa điểm / Phòng học:
+                    </label>
+                    <Input
+                      type="text"
+                      value={eventLocation}
+                      onChange={(e) => setEventLocation(e.target.value)}
+                      placeholder="VD: Phòng B201, Zoom..."
+                      className="text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                      Phân loại:
+                    </label>
+                    <select
+                      value={eventCategory}
+                      onChange={(e) => setEventCategory(e.target.value)}
+                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs text-slate-900 dark:text-slate-100"
+                    >
+                      <option value="STUDY">📚 Study (Tự học/Học thêm)</option>
+                      <option value="SCHOOL">🏫 School (Trường học)</option>
+                      <option value="WORK">💼 Work (Làm việc)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Attached Task Option */}
+                <div className="p-2.5 rounded-xl border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/40 dark:bg-indigo-950/20 flex items-center justify-between">
+                  <div>
+                    <div className="font-semibold text-slate-800 dark:text-slate-200 text-xs">
+                      Tự động đính kèm Task học tập
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      Tạo kèm nhiệm vụ ôn bài đính kèm vào khung giờ lịch này
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={eventCreateAttachedTask}
+                    onChange={(e) => setEventCreateAttachedTask(e.target.checked)}
+                    className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                  />
+                </div>
+
+                {/* Button Create Event */}
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={handleCreateEvent}
+                  disabled={isCreatingEvent}
+                  className="w-full justify-center bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-md shadow-indigo-600/20"
+                >
+                  <Calendar className="w-3.5 h-3.5 mr-1.5 text-indigo-200" />
+                  <span>{isCreatingEvent ? 'Đang tạo lịch...' : 'Tạo Sự kiện Lịch học & Đồng bộ Calendar'}</span>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 

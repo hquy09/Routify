@@ -49,14 +49,19 @@ def ensure_db_migrations():
 ensure_db_migrations()
 
 async def telegram_reminder_worker():
-    """Periodic background worker running every 60s to send upcoming schedule alerts."""
+    """Periodic background worker running to send upcoming schedule alerts and morning briefings."""
     # Wait 10s on startup before first check
     await asyncio.sleep(10)
     while True:
+        interval = 60
         try:
             db = SessionLocal()
             try:
                 TelegramService.check_and_send_reminders(db)
+                from app.models.sync import AppSetting
+                ival_setting = db.query(AppSetting).filter(AppSetting.key == "telegram_check_interval").first()
+                if ival_setting and ival_setting.value and ival_setting.value.isdigit():
+                    interval = max(15, int(ival_setting.value))
             finally:
                 db.close()
         except asyncio.CancelledError:
@@ -64,7 +69,7 @@ async def telegram_reminder_worker():
         except Exception as e:
             print(f"[TelegramReminderWorker] Error in reminder cycle: {e}")
         
-        await asyncio.sleep(60)
+        await asyncio.sleep(interval)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

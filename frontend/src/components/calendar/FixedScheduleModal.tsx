@@ -3,8 +3,9 @@ import {
   X, Calendar as CalendarIcon, Clock, MapPin, Tag, Palette,
   Sparkles, Trash2, Power, BookOpen, School, AlertCircle, Check
 } from 'lucide-react';
-import { FixedSchedule } from '../../types';
+import { FixedSchedule, Course, CourseNode } from '../../types';
 import { Button } from '../ui/button';
+import { api } from '../../services/api';
 
 interface FixedScheduleModalProps {
   isOpen: boolean;
@@ -77,10 +78,26 @@ export const FixedScheduleModal: React.FC<FixedScheduleModalProps> = ({
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [customCategoryName, setCustomCategoryName] = useState('');
 
+  // Course linkage state
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [courseNodes, setCourseNodes] = useState<CourseNode[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<number | undefined>(undefined);
+  const [selectedCourseNodeId, setSelectedCourseNodeId] = useState<number | undefined>(undefined);
+
   const isEditMode = Boolean(scheduleToEdit);
 
   useEffect(() => {
     if (!isOpen) return;
+
+    // Load available courses and lesson nodes
+    Promise.all([api.courses.list(), api.courses.getAllNodes()])
+      .then(([cList, nList]) => {
+        setCourses(cList || []);
+        setCourseNodes(nList || []);
+      })
+      .catch((err) => {
+        console.warn('Failed to load courses in FixedScheduleModal:', err);
+      });
 
     if (scheduleToEdit) {
       setTitle(scheduleToEdit.title || '');
@@ -93,6 +110,8 @@ export const FixedScheduleModal: React.FC<FixedScheduleModalProps> = ({
       setIcon(scheduleToEdit.icon || '📌');
       setLocation(scheduleToEdit.location || '');
       setIsActive(scheduleToEdit.is_active ?? true);
+      setSelectedCourseId(scheduleToEdit.course_id || undefined);
+      setSelectedCourseNodeId(scheduleToEdit.course_node_id || undefined);
 
       const foundCat = CATEGORIES.find((c) => c.id === scheduleToEdit.category);
       if (foundCat) {
@@ -114,6 +133,8 @@ export const FixedScheduleModal: React.FC<FixedScheduleModalProps> = ({
       setIcon('🏫');
       setLocation('');
       setIsActive(true);
+      setSelectedCourseId(undefined);
+      setSelectedCourseNodeId(undefined);
       setIsCustomCategory(false);
       setCustomCategoryName('');
     }
@@ -193,6 +214,8 @@ export const FixedScheduleModal: React.FC<FixedScheduleModalProps> = ({
           location: location.trim() || null,
           repeat_rule: scheduleToEdit.repeat_rule || 'WEEKLY',
           is_active: isActive,
+          course_id: selectedCourseId || null,
+          course_node_id: selectedCourseNodeId || null,
         });
       } else {
         if (selectedDays.length > 1 && onSaveBatch) {
@@ -208,6 +231,8 @@ export const FixedScheduleModal: React.FC<FixedScheduleModalProps> = ({
             location: location.trim() || null,
             repeat_rule: 'WEEKLY',
             is_active: isActive,
+            course_id: selectedCourseId || null,
+            course_node_id: selectedCourseNodeId || null,
           }));
           await onSaveBatch(batchData);
         } else {
@@ -223,6 +248,8 @@ export const FixedScheduleModal: React.FC<FixedScheduleModalProps> = ({
             location: location.trim() || null,
             repeat_rule: 'WEEKLY',
             is_active: isActive,
+            course_id: selectedCourseId || null,
+            course_node_id: selectedCourseNodeId || null,
           });
         }
       }
@@ -252,6 +279,7 @@ export const FixedScheduleModal: React.FC<FixedScheduleModalProps> = ({
   };
 
   const currentDisplayCategory = isCustomCategory ? customCategoryName || 'CUSTOM' : category;
+  const filteredLessons = courseNodes.filter((n) => n.course_id === selectedCourseId);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
@@ -494,6 +522,61 @@ export const FixedScheduleModal: React.FC<FixedScheduleModalProps> = ({
                   onChange={(e) => setIsActive(e.target.checked)}
                   className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
                 />
+              </div>
+
+              {/* Linked Course & Lesson */}
+              <div className="p-3 rounded-xl border border-emerald-200/80 dark:border-emerald-800/60 bg-emerald-50/40 dark:bg-emerald-950/20 space-y-2.5">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                  <BookOpen className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>Gán với Khóa học / Môn học (Tùy chọn)</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      Khóa học:
+                    </label>
+                    <select
+                      value={selectedCourseId || ''}
+                      onChange={(e) => {
+                        const val = e.target.value ? Number(e.target.value) : undefined;
+                        setSelectedCourseId(val);
+                        setSelectedCourseNodeId(undefined);
+                      }}
+                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-1.5 text-xs text-slate-900 dark:text-slate-100"
+                    >
+                      <option value="">-- Không gán khóa học --</option>
+                      {courses.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          📚 {c.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      Bài học / Tiết học:
+                    </label>
+                    <select
+                      value={selectedCourseNodeId || ''}
+                      disabled={!selectedCourseId || filteredLessons.length === 0}
+                      onChange={(e) => setSelectedCourseNodeId(e.target.value ? Number(e.target.value) : undefined)}
+                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-1.5 text-xs text-slate-900 dark:text-slate-100 disabled:opacity-50"
+                    >
+                      <option value="">
+                        {!selectedCourseId
+                          ? '-- Chọn khóa trước --'
+                          : filteredLessons.length === 0
+                          ? '-- Chưa có bài học --'
+                          : '-- Chọn bài học (tùy chọn) --'}
+                      </option>
+                      {filteredLessons.map((l) => (
+                        <option key={l.id} value={l.id}>
+                          📖 {l.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
 

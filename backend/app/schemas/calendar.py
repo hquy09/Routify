@@ -30,6 +30,10 @@ class ScheduleOccurrenceView(BaseModel):
     location: Optional[str] = None
     status: str = "NORMAL"  # NORMAL, MODIFIED, SKIPPED
     is_overridden: bool = False
+    course_id: Optional[int] = None
+    course_title: Optional[str] = None
+    course_node_id: Optional[int] = None
+    course_node_title: Optional[str] = None
 
 class DaySummaryStats(BaseModel):
     completed: int = 0

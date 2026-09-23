@@ -553,6 +553,14 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({
                           {deadline.shortText}
                         </span>
                       )}
+                      {t.course_title && (
+                        <span
+                          className="text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-1.5 py-0.2 rounded text-[9px] font-medium truncate max-w-[130px]"
+                          title={`Khóa học: ${t.course_title}`}
+                        >
+                          📚 {t.course_title}
+                        </span>
+                      )}
                       {t.scheduled_with_fixed_title && (
                         <span
                           className="text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 px-1.5 py-0.2 rounded text-[9px] font-medium truncate max-w-[120px]"
@@ -762,6 +770,17 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({
                               )}
                             </div>
                           </div>
+
+                          {occ.course_title && (
+                            <div className="flex items-center gap-1 mt-1">
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 font-semibold text-[10px] truncate max-w-full">
+                                <span>📚 {occ.course_title}</span>
+                                {occ.course_node_title && (
+                                  <span className="opacity-75 font-normal truncate"> • {occ.course_node_title}</span>
+                                )}
+                              </span>
+                            </div>
+                          )}
 
                           {occ.location && (
                             <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 mt-1">

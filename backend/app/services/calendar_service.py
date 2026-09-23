@@ -4,6 +4,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload
 from app.models.task import Task
 from app.models.calendar_note import CalendarNote
+from app.models.course import CourseNode
 from app.schemas.calendar import (
     CalendarWeeklyResponse, CalendarDayView, DaySummaryStats,
     CalendarMonthlyResponse, CalendarMonthDayView, CalendarNoteOut
@@ -33,15 +34,17 @@ class CalendarService:
             joinedload(Task.attachments),
             joinedload(Task.goal),
             joinedload(Task.project),
-            joinedload(Task.course_node),
+            joinedload(Task.course_node).joinedload(CourseNode.course),
             joinedload(Task.scheduled_with_fixed),
             joinedload(Task.transferred_from)
         ).all()
+        active_fixed_ids = {occ.fixed_schedule_id for occ in sched_occurrences}
         day_tasks = [
             t for t in day_tasks_all
             if (t.due_datetime and t.due_datetime.date() == current_date) or
                (t.start_datetime and t.start_datetime.date() == current_date) or
-               (t.completed_datetime and t.completed_datetime.date() == current_date)
+               (t.completed_datetime and t.completed_datetime.date() == current_date) or
+               (t.scheduled_with_fixed_id and t.scheduled_with_fixed_id in active_fixed_ids and t.status != "COMPLETED")
         ]
         formatted_tasks = [TaskService._format_task_out(t) for t in day_tasks]
 

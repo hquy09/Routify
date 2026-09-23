@@ -301,6 +301,16 @@ export const WeeklyTimeline: React.FC<WeeklyTimelineProps> = ({
                               )}
                             </div>
                           </div>
+                          {occ.course_title && (
+                            <div className="flex items-center gap-1 mt-1">
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 font-semibold text-[9px] truncate max-w-full">
+                                <span>📚 {occ.course_title}</span>
+                                {occ.course_node_title && (
+                                  <span className="opacity-75 font-normal truncate"> • {occ.course_node_title}</span>
+                                )}
+                              </span>
+                            </div>
+                          )}
                           {occ.location && (
                             <div className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400 mt-1">
                               <MapPin className="w-3 h-3 text-slate-400" />
@@ -318,13 +328,51 @@ export const WeeklyTimeline: React.FC<WeeklyTimelineProps> = ({
                               <span className="text-amber-500 font-semibold">[Đổi giờ]</span>
                             )}
                           </div>
-                          {/* Attached Tasks badge if any */}
+                          {/* Attached Tasks list inside Fixed Schedule */}
                           {attachedTasks.length > 0 && (
-                            <div className="mt-1.5 pt-1 border-t border-slate-200/50 dark:border-slate-700/50 flex items-center justify-between text-[9px] font-bold text-indigo-700 dark:text-indigo-300">
-                              <span className="flex items-center gap-1">
-                                <CheckSquare className="w-2.5 h-2.5 text-emerald-500" />
-                                <span>{attachedTasks.filter((t) => t.status === 'COMPLETED').length}/{attachedTasks.length} việc</span>
-                              </span>
+                            <div className="mt-1.5 pt-1 border-t border-slate-200/50 dark:border-slate-700/50 space-y-1">
+                              <div className="flex items-center justify-between text-[9px] font-bold text-indigo-700 dark:text-indigo-300">
+                                <span className="flex items-center gap-1">
+                                  <CheckSquare className="w-2.5 h-2.5 text-emerald-500" />
+                                  <span>Nhiệm vụ ({attachedTasks.filter((t) => t.status === 'COMPLETED').length}/{attachedTasks.length})</span>
+                                </span>
+                              </div>
+                              <div className="space-y-1 max-h-24 overflow-y-auto pr-0.5">
+                                {attachedTasks.map((t) => (
+                                  <div
+                                    key={t.id}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onTaskClick(t);
+                                    }}
+                                    className="flex items-center gap-1 p-1 rounded bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-700/80 text-[10px] hover:border-emerald-400 transition cursor-pointer"
+                                  >
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onToggleTask(t);
+                                      }}
+                                      className={`w-3 h-3 rounded flex items-center justify-center border transition shrink-0 ${
+                                        t.status === 'COMPLETED'
+                                          ? 'bg-emerald-500 border-emerald-500 text-white'
+                                          : 'border-slate-300 dark:border-slate-600 hover:border-emerald-500'
+                                      }`}
+                                    >
+                                      {t.status === 'COMPLETED' && <CheckCircle2 className="w-2 h-2" />}
+                                    </button>
+                                    <span
+                                      className={`truncate flex-1 font-medium ${
+                                        t.status === 'COMPLETED'
+                                          ? 'line-through text-slate-400 dark:text-slate-500'
+                                          : 'text-slate-800 dark:text-slate-200'
+                                      }`}
+                                    >
+                                      {t.title}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           )}
                         </div>

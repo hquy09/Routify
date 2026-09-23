@@ -3,7 +3,7 @@ import {
   HeartPulse, Sparkles, Sliders, RefreshCw, Calendar, Clock,
   Moon, Coffee, Flame, BatteryCharging, AlertTriangle, CheckCircle2,
   BookOpen, Brain, Zap, ArrowRight, ShieldAlert, Award, ChevronRight,
-  TrendingUp, Activity, Layers, Compass
+  TrendingUp, Activity, Layers, Compass, Power
 } from 'lucide-react';
 import {
   GlobalWellbeingAnalysis,
@@ -15,6 +15,7 @@ import {
 import { api } from '../services/api';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
+import { isMentalHealthEnabled, setMentalHealthEnabled } from '../utils/featureFlags';
 
 interface MentalHealthPageProps {
   onNavigateTab?: (tab: string) => void;
@@ -40,6 +41,27 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
   const [energyLevel, setEnergyLevel] = useState<WellbeingCustomConfig['energy_level']>('NORMAL');
   const [streamStrategy, setStreamStrategy] = useState<string>('BALANCED_BLOCKS');
   const [isCalibrated, setIsCalibrated] = useState<boolean>(false);
+
+  // Mental Health module toggle state
+  const [isMentalHealthOn, setIsMentalHealthOn] = useState<boolean>(() => isMentalHealthEnabled());
+
+  useEffect(() => {
+    const handleSync = () => {
+      setIsMentalHealthOn(isMentalHealthEnabled());
+    };
+    window.addEventListener('lifeos_mental_health_updated', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('lifeos_mental_health_updated', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, []);
+
+  const handleToggleMentalHealth = () => {
+    const next = !isMentalHealthOn;
+    setIsMentalHealthOn(next);
+    setMentalHealthEnabled(next);
+  };
 
   const loadAnalysis = async (customCfg?: WellbeingCustomConfig) => {
     setIsLoading(true);
@@ -71,14 +93,14 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
     if (maxFocusHours <= 4.0) {
       return {
         level: 'LOW',
-        label: 'Thư thái, như đi dạo',
+        label: 'Thư thái, nhẹ nhàng',
         color: '#10b981',
         textColor: 'text-emerald-600 dark:text-emerald-400',
         bgGradient: 'from-emerald-500 to-teal-600',
         borderColor: 'border-emerald-300 dark:border-emerald-700',
         icon: '😌',
         isHighTension: false,
-        advice: 'Tâm trí thoải mái, sức chứa nhận thức dư dả để phục hồi và tiếp thu sâu.'
+        advice: 'Tâm trí thoải mái, nhịp độ học tập nhẹ nhàng, rất tốt để phục hồi năng lượng và tiếp thu kiến thức một cách tự nhiên.'
       };
     } else if (maxFocusHours <= 6.5) {
       return {
@@ -90,7 +112,7 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
         borderColor: 'border-sky-300 dark:border-sky-700',
         icon: '🎯',
         isHighTension: false,
-        advice: 'Trạng thái Flow State lý tưởng, hiệu quả học tập và năng lượng duy trì ổn định.'
+        advice: 'Nhịp độ học tập lý tưởng! Não bộ tập trung sâu mà không bị quá tải, năng lượng duy trì ổn định suốt cả ngày.'
       };
     } else if (maxFocusHours <= 8.0) {
       return {
@@ -102,19 +124,19 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
         borderColor: 'border-amber-300 dark:border-amber-700',
         icon: '⚡',
         isHighTension: true,
-        advice: 'Tải lượng cao bắt đầu làm chậm tốc độ xử lý của não bộ. Cần tối thiểu 2 giờ đệm thư giãn.'
+        advice: 'Áp lực học tập bắt đầu tăng cao. Não bộ cần tối thiểu 1.5 - 2 giờ thư giãn, vận động nhẹ hoặc nghe nhạc để tránh mệt mỏi.'
       };
     } else {
       return {
         level: 'EXTREME',
-        label: 'ĐỘ CĂNG CỰC ĐẠI - NGUY CƠ BÙNG NỔ BURNOUT!',
+        label: 'ÁP LỰC CỰC ĐẠI - NGUY CƠ KIỆT SỨC (BURNOUT)!',
         color: '#ef4444',
         textColor: 'text-rose-600 dark:text-rose-400 font-black',
         bgGradient: 'from-rose-500 via-red-600 to-purple-700',
         borderColor: 'border-rose-400 dark:border-rose-600',
         icon: '🔥',
         isHighTension: true,
-        advice: 'BÁO ĐỘNG ĐỎ: Vượt quá giới hạn sinh học! Axit lactic nhận thức tích tụ sẽ làm suy giảm trí nhớ dài hạn.'
+        advice: 'CẢNH BÁO KIỆT SỨC: Học quá nhiều giờ liên tục khiến não bộ quá tải, dễ dẫn đến stress và giảm khả năng ghi nhớ. Bạn nên giảm bớt bài học và ngủ đủ giấc.'
       };
     }
   }, [maxFocusHours]);
@@ -173,9 +195,16 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
                 <HeartPulse className="w-6 h-6 animate-pulse" />
               </span>
               <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                Quản lý Sức khỏe Tinh thần & Cân bằng Cuộc sống
+                Quản lý Mức độ Căng thẳng & Sức khỏe Tinh thần
               </h1>
-              {analysis && (
+              {!isMentalHealthOn ? (
+                <Badge
+                  variant="outline"
+                  className="text-xs px-2.5 py-0.5 font-bold border-dashed border-slate-400 dark:border-slate-600 text-slate-500 dark:text-slate-400 bg-slate-100/60 dark:bg-slate-800/60"
+                >
+                  ⏸️ Đang tắt tính năng
+                </Badge>
+              ) : analysis ? (
                 <Badge
                   variant="outline"
                   className={`text-xs px-2.5 py-0.5 font-bold ${
@@ -190,18 +219,31 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
                     ? '🚨 Nguy cơ Quá tải'
                     : analysis.weekly_burnout_risk_level === 'MODERATE'
                     ? '⚡ Nguy cơ Cục bộ'
-                    : '✅ Lộ trình Bền vững'}
+                    : '✅ Nhịp độ Bền vững'}
                 </Badge>
-              )}
+              ) : null}
             </div>
             <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-              Ma trận điều hòa toàn diện: Tổng hợp cộng dồn áp lực từ tất cả các khóa học, lịch cố định (trường học/công sở),
-              nhịp sinh học giấc ngủ và phân chia luồng học thông minh chống kiệt sức.
+              Theo dõi mức độ áp lực học tập và làm việc hàng ngày, tự động cân đối với giấc ngủ và thời gian nghỉ ngơi để bạn luôn duy trì năng lượng và tránh kiệt sức.
             </p>
           </div>
 
           {/* Quick Actions */}
           <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleToggleMentalHealth}
+              className={`transition shadow-xs font-semibold ${
+                isMentalHealthOn
+                  ? 'border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40'
+                  : 'border-dashed border-slate-300 dark:border-slate-700 bg-slate-100/70 dark:bg-slate-800/40 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+              title="Bật/Tắt tính năng Quản lý Sức khỏe Tinh thần"
+            >
+              <Power className={`w-3.5 h-3.5 mr-1.5 ${isMentalHealthOn ? 'text-rose-500' : 'text-slate-400'}`} />
+              <span>{isMentalHealthOn ? 'Tính năng: Đang Bật' : 'Tính năng: Đang Tắt'}</span>
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -234,6 +276,38 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
         )}
       </div>
 
+      {/* Notice Banner when Disabled */}
+      {!isMentalHealthOn && (
+        <div className="p-4 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-100/80 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs animate-in fade-in">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl border border-dashed border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-400 shrink-0">
+              <HeartPulse className="w-5 h-5" />
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-sm text-slate-800 dark:text-slate-200">
+                  Tính năng Quản lý Sức khỏe Tinh thần hiện đang TẮT
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full border border-dashed border-slate-400 dark:border-slate-600 text-slate-500">
+                  TẠM DỪNG
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Chỉ số Sức khỏe & Áp lực tinh thần trên thanh Topbar và trong Báo cáo tuần (Weekly Report) đang hiển thị màu xám với viền nét đứt. Dữ liệu tính toán vẫn được bảo lưu và bạn có thể kích hoạt lại bất kỳ lúc nào.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={handleToggleMentalHealth}
+            className="bg-rose-600 hover:bg-rose-700 text-white shadow-xs font-semibold shrink-0 cursor-pointer"
+          >
+            <HeartPulse className="w-3.5 h-3.5 mr-1.5" />
+            <span>Bật lại tính năng</span>
+          </Button>
+        </div>
+      )}
+
       {/* 2. STATS & OVERVIEW CARDS */}
       {analysis && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
@@ -245,7 +319,7 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
             <div className="flex items-center justify-between mb-1 text-slate-500 dark:text-slate-400 text-xs">
               <span className="font-semibold flex items-center gap-1.5">
                 <HeartPulse className="w-4 h-4 text-rose-500" />
-                <span>Chỉ số Tải nhận thức</span>
+                <span>Mức Độ Áp Lực Tối Đa</span>
               </span>
               <span className="text-base select-none">{tensionDetails.icon}</span>
             </div>
@@ -253,14 +327,14 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
               <span className="text-2xl font-black font-mono tracking-tight" style={{ color: tensionDetails.color }}>
                 {maxFocusHours.toFixed(1)}h
               </span>
-              <span className="text-xs font-semibold text-slate-500">/ ngày</span>
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">/ ngày</span>
             </div>
             <p className="text-[11px] font-medium text-slate-600 dark:text-slate-300 mt-1 truncate">
               {tensionDetails.label}
             </p>
           </div>
 
-          {/* Card 2: Tổng Tải Học Các Môn */}
+          {/* Card 2: Tổng Giờ Cần Học Các Môn */}
           <div
             onClick={() => setActiveTab('courses')}
             className="p-4 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 cursor-pointer transition hover:border-slate-400 dark:hover:border-slate-700 hover:shadow-md"
@@ -268,7 +342,7 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
             <div className="flex items-center justify-between mb-1 text-slate-500 dark:text-slate-400 text-xs">
               <span className="font-semibold flex items-center gap-1.5">
                 <BookOpen className="w-4 h-4 text-indigo-500" />
-                <span>Tổng Tải Học Tập</span>
+                <span>Thời Gian Cần Học</span>
               </span>
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-mono">
                 {analysis.active_courses_count} khóa đang học
@@ -278,7 +352,7 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
               <span className="text-2xl font-black font-mono tracking-tight text-slate-900 dark:text-slate-100">
                 {Math.round(analysis.combined_daily_study_minutes)}p
               </span>
-              <span className="text-xs font-semibold text-slate-500">/ ngày (~{analysis.combined_daily_study_hours}h)</span>
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">/ ngày (~{analysis.combined_daily_study_hours}h)</span>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
               Còn {analysis.total_remaining_study_hours}h ({analysis.total_remaining_lessons} bài)
@@ -300,11 +374,11 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
               <span className="text-2xl font-black font-mono tracking-tight text-slate-900 dark:text-slate-100">
                 {sleepTargetHours.toFixed(1)}h
               </span>
-              <span className="text-xs font-semibold text-slate-500">/ đêm</span>
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">/ đêm</span>
             </div>
             <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1 font-medium">
               <CheckCircle2 className="w-3 h-3 shrink-0" />
-              <span>Đạt chuẩn củng cố trí nhớ dài hạn</span>
+              <span>Giúp não bộ phục hồi và củng cố trí nhớ</span>
             </p>
           </div>
 
@@ -313,7 +387,7 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
             <div className="flex items-center justify-between mb-1 text-slate-500 dark:text-slate-400 text-xs">
               <span className="font-semibold flex items-center gap-1.5">
                 <Coffee className="w-4 h-4 text-amber-500" />
-                <span>Khoảng Thở Tối Thiểu</span>
+                <span>Thời Gian Thư Giãn</span>
               </span>
               <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
                 Buffer: {minFreeHours.toFixed(1)}h
@@ -323,10 +397,10 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
               <span className="text-2xl font-black font-mono tracking-tight text-slate-900 dark:text-slate-100">
                 {minFreeHours.toFixed(1)}h
               </span>
-              <span className="text-xs font-semibold text-slate-500">/ ngày</span>
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">/ ngày</span>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-              Thời gian giải tỏa stress và tái tạo dopamine
+              Dành cho ăn uống, thể thao, giải trí và nghỉ ngơi
             </p>
           </div>
         </div>
@@ -367,33 +441,33 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
             className={`px-4 py-2 rounded-xl text-xs md:text-sm font-semibold transition-all flex items-center gap-2 ${
               activeTab === 'matrix'
                 ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <Calendar className="w-4 h-4" />
-            <span>Ma trận 7 ngày & Phân luồng học</span>
+            <span>Lịch trình 7 ngày & Phân bổ môn học</span>
           </button>
           <button
             onClick={() => setActiveTab('courses')}
             className={`px-4 py-2 rounded-xl text-xs md:text-sm font-semibold transition-all flex items-center gap-2 ${
               activeTab === 'courses'
                 ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <BookOpen className="w-4 h-4" />
-            <span>Phân rã Nguồn Áp lực môn học ({analysis?.total_courses_count || 0})</span>
+            <span>Áp lực từng môn học ({analysis?.total_courses_count || 0})</span>
           </button>
           <button
             onClick={() => setActiveTab('tuning')}
             className={`px-4 py-2 rounded-xl text-xs md:text-sm font-semibold transition-all flex items-center gap-2 ${
               activeTab === 'tuning'
                 ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <Sliders className="w-4 h-4" />
-            <span>Hiệu chỉnh & Thanh trượt Tải nhận thức</span>
+            <span>Cài đặt Ngưỡng Áp lực & Giờ học</span>
           </button>
         </div>
 
@@ -454,8 +528,8 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
 
                       {/* Efficiency Score */}
                       <div className="mb-3">
-                        <div className="flex justify-between items-center text-[10px] text-slate-500 mb-0.5 font-medium">
-                          <span>Hiệu quả nhận thức</span>
+                        <div className="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400 mb-0.5 font-medium">
+                          <span>Độ tỉnh táo & tiếp thu</span>
                           <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{day.efficiency_score}%</span>
                         </div>
                         <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
@@ -474,7 +548,7 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
 
                       {/* Mini 24h Stacked Bar */}
                       <div className="space-y-1 mb-3">
-                        <span className="text-[10px] text-slate-400 block font-medium">Cơ cấu 24h:</span>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 block font-medium">Cơ cấu 24h:</span>
                         <div className="w-full h-2.5 rounded-full flex overflow-hidden bg-slate-100 dark:bg-slate-800">
                           <div style={{ width: `${(day.sleep_minutes / 1440) * 100}%` }} className="bg-indigo-500" title={`Ngủ: ${day.sleep_hours}h`} />
                           <div style={{ width: `${(day.fixed_minutes / 1440) * 100}%` }} className="bg-amber-500" title={`Cố định: ${day.fixed_hours}h`} />
@@ -502,7 +576,7 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
 
                     {/* Streams preview tag */}
                     <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-[10px]">
-                      <span className="text-slate-400 font-medium">Luồng học: </span>
+                      <span className="text-slate-400 dark:text-slate-500 font-medium">Môn học: </span>
                       <strong className="text-slate-700 dark:text-slate-300">{day.streams.length} môn</strong>
                     </div>
                   </div>
@@ -511,7 +585,7 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
             </div>
 
             {/* Legend for 24h Bar */}
-            <div className="flex items-center justify-center gap-4 text-xs text-slate-500 flex-wrap pt-1">
+            <div className="flex items-center justify-center gap-4 text-xs text-slate-500 dark:text-slate-400 flex-wrap pt-1">
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-indigo-500" /> Ngủ</span>
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-amber-500" /> Lịch cố định</span>
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-500" /> Tổng học các môn</span>
@@ -525,7 +599,7 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2.5">
                       <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                        Chi tiết Lộ trình: {selectedDayDetail.day_name}
+                        Chi tiết Lịch trình: {selectedDayDetail.day_name}
                       </h3>
                       <Badge
                         variant="secondary"
@@ -538,14 +612,14 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
                         }`}
                       >
                         {selectedDayDetail.status === 'BURNOUT_RISK'
-                          ? '🚨 Quá tải nhận thức'
+                          ? '🚨 Nguy cơ Quá tải'
                           : selectedDayDetail.status === 'MODERATE'
                           ? '⚡ Mức độ Căng thẳng vừa'
                           : '✅ Trạng thái Lý tưởng'}
                       </Badge>
                     </div>
-                    <p className="text-xs text-slate-500">
-                      Hiệu quả ghi nhớ dự kiến: <strong className="text-indigo-600 dark:text-indigo-400">{selectedDayDetail.efficiency_score}%</strong> •
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Độ tỉnh táo & tiếp thu: <strong className="text-indigo-600 dark:text-indigo-400">{selectedDayDetail.efficiency_score}%</strong> •
                       Thời gian cam kết: <strong className="text-slate-700 dark:text-slate-300">{selectedDayDetail.workload_ratio}% quỹ thời gian thức</strong>
                     </p>
                   </div>
@@ -566,9 +640,9 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
                 {/* Smart Allocated Study Streams for this Day */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                    <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                       <Layers className="w-3.5 h-3.5 text-indigo-500" />
-                      <span>Các Luồng Học Tập Được Phân Bổ Trong Ngày ({selectedDayDetail.streams.length} môn)</span>
+                      <span>Các Môn Học Được Sắp Xếp Trong Ngày ({selectedDayDetail.streams.length} môn)</span>
                     </h4>
                     <span className="text-xs font-mono text-indigo-600 dark:text-indigo-400 font-bold">
                       Tổng thời lượng học: {selectedDayDetail.total_study_minutes} phút (~{selectedDayDetail.total_study_hours}h)
@@ -580,7 +654,7 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
                       {selectedDayDetail.streams.map((stream, idx) => (
                         <div
                           key={idx}
-                          className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 flex flex-col justify-between space-y-2 hover:border-slate-300 transition"
+                          className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 flex flex-col justify-between space-y-2 hover:border-slate-300 dark:hover:border-slate-700 transition"
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2">
@@ -611,7 +685,7 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
                           </div>
 
                           <div className="flex items-center justify-between text-xs font-mono">
-                            <span className="text-slate-500">Khung giờ: {stream.recommended_window}</span>
+                            <span className="text-slate-500 dark:text-slate-400">Khung giờ: {stream.recommended_window}</span>
                             <span className="font-bold text-indigo-600 dark:text-indigo-400">
                               {stream.duration_minutes} phút
                             </span>
@@ -620,8 +694,8 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
                       ))}
                     </div>
                   ) : (
-                    <div className="p-6 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-center text-xs text-slate-400">
-                      Không có luồng học nào cần phân bổ vào ngày này (Ngày nghỉ ngơi phục hồi não bộ trọn vẹn).
+                    <div className="p-6 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-center text-xs text-slate-400 dark:text-slate-500">
+                      Ngày nghỉ ngơi, phục hồi thể lực và trí não trọn vẹn.
                     </div>
                   )}
                 </div>
@@ -629,7 +703,7 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
                 {/* Fixed Schedules of this day */}
                 {selectedDayDetail.fixed_schedule_names.length > 0 && (
                   <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
-                    <span className="text-slate-500 font-medium">Lịch cố định ngày này: </span>
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">Lịch cố định ngày này: </span>
                     <span className="font-semibold text-slate-700 dark:text-slate-300">
                       {selectedDayDetail.fixed_schedule_names.join(', ')}
                     </span>
@@ -646,9 +720,9 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                  Phân rã Nguồn Áp lực từ các Khóa học ({analysis.courses_contribution.length})
+                  Áp lực và Thời lượng từ các Khóa học ({analysis.courses_contribution.length})
                 </h3>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Tỷ trọng (%) và thời lượng cần học mỗi ngày để kịp tiến độ deadline của từng môn.
                 </p>
               </div>
@@ -701,7 +775,7 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
                     </div>
 
                     {/* Instructor & Countdown */}
-                    <div className="flex items-center justify-between text-xs text-slate-500">
+                    <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                       <span>{course.instructor ? `GV: ${course.instructor}` : 'Tự nghiên cứu'}</span>
                       {course.countdown_title && (
                         <span className="inline-flex items-center gap-1 font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800 text-[10px]">
@@ -714,7 +788,7 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
                     {/* Load Percentage Bar */}
                     <div className="space-y-1">
                       <div className="flex justify-between text-[11px] font-medium">
-                        <span className="text-slate-500">Tỷ trọng trong tổng tải học</span>
+                        <span className="text-slate-500 dark:text-slate-400">Tỷ trọng trong tổng tải học</span>
                         <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
                           {course.percentage_of_total_study}%
                         </span>
@@ -734,13 +808,13 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
                   {/* Daily pace stats */}
                   <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
                     <div>
-                      <span className="text-[10px] text-slate-400 block font-medium">Cần học mỗi ngày</span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 block font-medium">Cần học mỗi ngày</span>
                       <strong className="text-sm font-mono text-slate-900 dark:text-slate-100 font-bold">
                         {Math.round(course.daily_study_minutes_needed)} phút
                       </strong>
                     </div>
                     <div className="text-right">
-                      <span className="text-[10px] text-slate-400 block font-medium">Còn lại</span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 block font-medium">Còn lại</span>
                       <span className="font-mono text-slate-700 dark:text-slate-300 font-semibold">
                         {Math.round(course.total_remaining_minutes / 60 * 10) / 10}h ({course.total_remaining_lessons} bài)
                       </span>
@@ -762,18 +836,18 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
                   <div className="flex items-center gap-2">
                     <span className="text-2xl select-none">{tensionDetails.icon}</span>
                     <h3 className="text-base md:text-lg font-bold text-slate-900 dark:text-slate-100">
-                      Thanh trượt Tải nhận thức (Cognitive Load Slider)
+                      Thanh trượt Điều chỉnh Giờ học & Làm việc Mỗi ngày
                     </h3>
                   </div>
-                  <p className="text-xs text-slate-500">
-                    Kéo để điều chỉnh ngưỡng chịu tải tối đa hàng ngày. Ma trận sẽ biến sắc theo định luật nhiệt động học nhận thức.
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Kéo để cài đặt số giờ học và làm việc tối đa bạn mong muốn trong một ngày. Hệ thống sẽ tự động cảnh báo khi bạn học quá sức.
                   </p>
                 </div>
                 <div className="text-right">
                   <span className="text-3xl font-black font-mono tracking-tight" style={{ color: tensionDetails.color }}>
                     {maxFocusHours.toFixed(1)}
                   </span>
-                  <span className="text-xs text-slate-500 ml-1 font-medium">giờ/ngày</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 ml-1 font-medium">giờ/ngày</span>
                 </div>
               </div>
 
@@ -791,7 +865,7 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
                     background: `linear-gradient(to right, #10b981 0%, #0284c7 35%, #f59e0b 65%, #ef4444 85%, #7c3aed 100%)`,
                   }}
                 />
-                <div className="flex justify-between text-[11px] text-slate-400 font-mono px-1">
+                <div className="flex justify-between text-[11px] text-slate-400 dark:text-slate-400 font-mono px-1">
                   <span>3.0h (Thư thái 😌)</span>
                   <span>5.0h (Tập trung 🎯)</span>
                   <span>7.0h (Căng thẳng ⚡)</span>
@@ -856,15 +930,15 @@ export const MentalHealthPage: React.FC<MentalHealthPageProps> = ({
             <div className="p-6 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-3">
               <label className="block text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Compass className="w-4 h-4 text-indigo-500" />
-                <span>Chiến Lược Phân Bố Luồng Học (Study Stream Strategy):</span>
+                <span>Chiến Lược Phân Bổ Môn Học:</span>
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {[
                   {
                     id: 'BALANCED_BLOCKS',
                     label: 'Khối Chuyên Sâu (Block)',
-                    desc: 'Phân luồng 1-2 môn/ngày xen kẽ để chống mệt mỏi do phân tán nhận thức (Khuyên dùng)',
-                    badge: 'Tối ưu nhận thức 🎯'
+                    desc: 'Học 1-2 môn/ngày xen kẽ để tránh bị phân tâm và mệt mỏi (Khuyên dùng)',
+                    badge: 'Tập trung sâu 🎯'
                   },
                   {
                     id: 'ADAPTIVE',

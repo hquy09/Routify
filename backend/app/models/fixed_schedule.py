@@ -27,11 +27,24 @@ class FixedSchedule(Base):
     location: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
+    course_id: Mapped[Optional[int]] = mapped_column(ForeignKey("courses.id", ondelete="SET NULL"), nullable=True)
+    course_node_id: Mapped[Optional[int]] = mapped_column(ForeignKey("course_nodes.id", ondelete="SET NULL"), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     occurrences: Mapped[List["FixedScheduleOccurrence"]] = relationship("FixedScheduleOccurrence", back_populates="fixed_schedule", cascade="all, delete-orphan")
     scheduled_tasks = relationship("Task", back_populates="scheduled_with_fixed")
+    course = relationship("Course")
+    course_node = relationship("CourseNode")
+
+    @property
+    def course_title(self) -> Optional[str]:
+        return self.course.title if self.course else None
+
+    @property
+    def course_node_title(self) -> Optional[str]:
+        return self.course_node.title if self.course_node else None
 
 
 class FixedScheduleOccurrence(Base):

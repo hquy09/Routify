@@ -35,6 +35,8 @@ class FixedScheduleBase(BaseModel):
     icon: Optional[str] = "📌"
     location: Optional[str] = None
     is_active: bool = True
+    course_id: Optional[int] = None
+    course_node_id: Optional[int] = None
 
 class FixedScheduleCreate(FixedScheduleBase):
     pass
@@ -53,12 +55,16 @@ class FixedScheduleUpdate(BaseModel):
     icon: Optional[str] = None
     location: Optional[str] = None
     is_active: Optional[bool] = None
+    course_id: Optional[int] = None
+    course_node_id: Optional[int] = None
 
 class FixedScheduleOut(FixedScheduleBase):
     id: int
     created_at: datetime
     updated_at: datetime
     occurrences: List[FixedScheduleOccurrenceOut] = []
+    course_title: Optional[str] = None
+    course_node_title: Optional[str] = None
 
     class Config:
         from_attributes = True

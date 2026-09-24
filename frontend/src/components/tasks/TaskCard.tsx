@@ -110,7 +110,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           {task.status !== 'TRANSFERRED' && task.status !== 'CANCELLED' && (
             <button
               onClick={() => onTransfer(task)}
-              title="Chuyển giao task sang ngày mới (giữ lịch sử)"
+              title="Chuyển tiếp nhiệm vụ sang ngày mới"
               className="p-1 text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition"
             >
               <ArrowRightLeft className="w-3.5 h-3.5" />
@@ -118,14 +118,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           )}
           <button
             onClick={() => onEdit(task)}
-            title="Chỉnh sửa task"
+            title="Chỉnh sửa nhiệm vụ"
             className="p-1 text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition"
           >
             <Edit className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => onDelete(task.id)}
-            title="Xóa task"
+            title="Xóa nhiệm vụ"
             className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -202,14 +202,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           className={`flex items-center gap-1 text-[11px] font-medium ${diffInfo.color} bg-slate-100 dark:bg-slate-800/60 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700/50`}
         >
           <Flame className="w-3 h-3 fill-current" />
-          <span>Độ khó {task.difficulty} ({diffInfo.label})</span>
+          <span>Độ khó: {diffInfo.label}</span>
         </span>
 
         {/* Attachments */}
         {task.attachments && task.attachments.length > 0 && (
           <span className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
             <Paperclip className="w-3 h-3 text-slate-400" />
-            <span>{task.attachments.length} files</span>
+            <span>{task.attachments.length} tệp đính kèm</span>
           </span>
         )}
       </div>
@@ -224,7 +224,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             <span className="flex items-center gap-1 font-medium">
               {showSubtasks ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
               <span>
-                {task.subtasks_completed_count} / {task.subtasks_count} subtasks
+                {task.subtasks_completed_count} / {task.subtasks_count} việc con
               </span>
             </span>
             <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">

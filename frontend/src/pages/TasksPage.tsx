@@ -3,13 +3,13 @@ import {
   Search, Plus, Filter, ArrowUpDown, ArrowUp, ArrowDown,
   Layers, LayoutList, LayoutGrid, ChevronDown, ChevronRight,
   BookOpen, Clock, Flag, Flame, CheckCircle2, Circle, Target,
-  Sparkles, CheckSquare
+  Sparkles, CheckSquare, Eye, EyeOff, CornerDownRight
 } from 'lucide-react';
 import { TaskCard } from '../components/tasks/TaskCard';
 import { TaskRowItem } from '../components/tasks/TaskRowItem';
 import { TaskModal } from '../components/tasks/TaskModal';
 import { TaskTransferModal } from '../components/tasks/TaskTransferModal';
-import { Task, Goal, PRIORITY_CONFIG, PriorityLevel } from '../types';
+import { Task, Goal, PRIORITY_CONFIG, PriorityLevel, TaskStatus } from '../types';
 import { api } from '../services/api';
 import { Button } from '../components/ui/button';
 import { formatDatetimeForBackend, toLocalDateString } from '../utils/dateUtils';
@@ -29,6 +29,71 @@ interface TaskGroup {
   tasks: Task[];
 }
 
+interface StatusColumnConfig {
+  id: string;
+  title: string;
+  icon: React.ReactNode;
+  headerBg: string;
+  badgeBg: string;
+  borderColor: string;
+  statuses: string[];
+  defaultStatus: TaskStatus;
+}
+
+const BASE_STATUS_COLUMNS: StatusColumnConfig[] = [
+  {
+    id: 'col_todo',
+    title: 'Chưa bắt đầu',
+    icon: <Circle className="w-4 h-4 text-slate-500 shrink-0" />,
+    headerBg: 'bg-slate-100/90 dark:bg-slate-800/90 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700/80',
+    badgeBg: 'bg-slate-200/80 text-slate-700 dark:bg-slate-700 dark:text-slate-300',
+    borderColor: 'border-slate-200 dark:border-slate-800',
+    statuses: ['TODO'],
+    defaultStatus: 'TODO',
+  },
+  {
+    id: 'col_progress',
+    title: 'Đang thực hiện',
+    icon: <Clock className="w-4 h-4 text-blue-500 shrink-0" />,
+    headerBg: 'bg-blue-50/90 dark:bg-blue-950/60 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800/70',
+    badgeBg: 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300',
+    borderColor: 'border-blue-200/70 dark:border-blue-900/40',
+    statuses: ['IN_PROGRESS', 'PARTIAL'],
+    defaultStatus: 'IN_PROGRESS',
+  },
+  {
+    id: 'col_delayed',
+    title: 'Chậm trễ',
+    icon: <Flame className="w-4 h-4 text-rose-500 shrink-0" />,
+    headerBg: 'bg-rose-50/90 dark:bg-rose-950/60 text-rose-800 dark:text-rose-200 border-rose-200 dark:border-rose-800/70',
+    badgeBg: 'bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300',
+    borderColor: 'border-rose-200/70 dark:border-rose-900/40',
+    statuses: ['DELAYED'],
+    defaultStatus: 'DELAYED',
+  },
+  {
+    id: 'col_completed',
+    title: 'Đã hoàn thành',
+    icon: <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />,
+    headerBg: 'bg-emerald-50/90 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800/70',
+    badgeBg: 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300',
+    borderColor: 'border-emerald-200/70 dark:border-emerald-900/40',
+    statuses: ['COMPLETED'],
+    defaultStatus: 'COMPLETED',
+  },
+];
+
+const TRANSFERRED_COLUMN: StatusColumnConfig = {
+  id: 'col_transferred',
+  title: 'Đã chuyển tiếp',
+  icon: <CornerDownRight className="w-4 h-4 text-purple-500 shrink-0" />,
+  headerBg: 'bg-purple-50/90 dark:bg-purple-950/60 text-purple-800 dark:text-purple-200 border-purple-200 dark:border-purple-800/70',
+  badgeBg: 'bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300',
+  borderColor: 'border-purple-200/70 dark:border-purple-900/40',
+  statuses: ['TRANSFERRED'],
+  defaultStatus: 'TRANSFERRED',
+};
+
 export const TasksPage: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -46,13 +111,15 @@ export const TasksPage: React.FC = () => {
   const [groupBy, setGroupBy] = useState<GroupByMode>('COURSE');
   const [sortBy, setSortBy] = useState<SortByMode>('DUE');
   const [sortOrder, setSortOrder] = useState<SortOrder>('ASC');
-  const [viewLayout, setViewLayout] = useState<ViewLayout>('ROWS');
+  const [viewLayout, setViewLayout] = useState<ViewLayout>('CARDS');
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [hideCompletedCards, setHideCompletedCards] = useState<boolean>(false);
 
   // Modals
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [taskToTransfer, setTaskToTransfer] = useState<Task | null>(null);
+  const [modalInitialStatus, setModalInitialStatus] = useState<TaskStatus | undefined>(undefined);
 
   const loadTasks = async () => {
     setIsLoading(true);
@@ -197,9 +264,13 @@ export const TasksPage: React.FC = () => {
     return sortOrder === 'ASC' ? diff : -diff;
   };
 
+  const sortedAllTasks = useMemo(() => {
+    return [...tasks].sort(sortComparator);
+  }, [tasks, sortBy, sortOrder]);
+
   // Grouping Engine
   const groupedTasks = useMemo<TaskGroup[]>(() => {
-    const sorted = [...tasks].sort(sortComparator);
+    const sorted = sortedAllTasks;
 
     if (groupBy === 'NONE') {
       return [
@@ -394,7 +465,122 @@ export const TasksPage: React.FC = () => {
     }
 
     return [];
-  }, [tasks, groupBy, sortBy, sortOrder, goals]);
+  }, [sortedAllTasks, groupBy, goals]);
+
+  // Render Status Columns Board for Grid View
+  const renderStatusBoard = (taskList: Task[]) => {
+    const hasTransferred = taskList.some((t) => t.status === 'TRANSFERRED');
+    const activeColumns = hasTransferred
+      ? [...BASE_STATUS_COLUMNS, TRANSFERRED_COLUMN]
+      : BASE_STATUS_COLUMNS;
+
+    return (
+      <div
+        className={`grid grid-cols-1 md:grid-cols-2 ${
+          activeColumns.length >= 5 ? 'xl:grid-cols-5' : 'xl:grid-cols-4'
+        } gap-4 items-start w-full`}
+      >
+        {activeColumns.map((col) => {
+          const colTasks = taskList.filter((t) => col.statuses.includes(t.status));
+          const isCompletedCol = col.id === 'col_completed';
+          const isHidden = isCompletedCol && hideCompletedCards;
+
+          return (
+            <div
+              key={col.id}
+              className="bg-slate-50/70 dark:bg-slate-900/40 rounded-2xl border border-slate-200/90 dark:border-slate-800/90 p-3 flex flex-col gap-3 min-h-[360px] shadow-2xs"
+            >
+              {/* Column Header */}
+              <div
+                className={`p-2.5 px-3 rounded-xl border flex items-center justify-between gap-2 shadow-2xs select-none ${col.headerBg}`}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  {col.icon}
+                  <span className="font-bold text-xs truncate">{col.title}</span>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${col.badgeBg}`}>
+                    {colTasks.length}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0">
+                  {isCompletedCol && colTasks.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setHideCompletedCards(!hideCompletedCards)}
+                      title={hideCompletedCards ? 'Hiển thị các nhiệm vụ đã hoàn thành' : 'Ẩn các nhiệm vụ đã hoàn thành'}
+                      className="p-1 rounded text-slate-500 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-100/50 dark:hover:bg-emerald-950/50 transition flex items-center gap-1 text-[11px]"
+                    >
+                      {hideCompletedCards ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                      <span className="hidden sm:inline text-[10px] font-semibold">{hideCompletedCards ? 'Hiện' : 'Ẩn'}</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTaskToEdit(null);
+                      setModalInitialStatus(col.defaultStatus);
+                      setIsTaskModalOpen(true);
+                    }}
+                    title={`Tạo nhiệm vụ "${col.title}"`}
+                    className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 transition"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Column Content */}
+              {isHidden ? (
+                <div
+                  onClick={() => setHideCompletedCards(false)}
+                  className="p-4 rounded-xl border border-dashed border-emerald-300 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 text-center cursor-pointer hover:bg-emerald-100/50 transition select-none space-y-1 my-auto"
+                >
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500 mx-auto" />
+                  <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                    Đã ẩn {colTasks.length} việc đã hoàn thành
+                  </p>
+                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400">Bấm để mở lại</p>
+                </div>
+              ) : colTasks.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center p-6 rounded-xl border border-dashed border-slate-200 dark:border-slate-800/80 text-slate-400 text-xs text-center space-y-1 min-h-[140px]">
+                  <span className="text-xs text-slate-400 dark:text-slate-500">Chưa có nhiệm vụ</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTaskToEdit(null);
+                      setModalInitialStatus(col.defaultStatus);
+                      setIsTaskModalOpen(true);
+                    }}
+                    className="text-[11px] font-semibold text-neutral-900 dark:text-neutral-100 hover:underline pt-0.5"
+                  >
+                    + Thêm việc
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {colTasks.map((t) => (
+                    <TaskCard
+                      key={t.id}
+                      task={t}
+                      onToggleStatus={handleToggleStatus}
+                      onTransfer={(task) => setTaskToTransfer(task)}
+                      onEdit={(task) => {
+                        setTaskToEdit(task);
+                        setIsTaskModalOpen(true);
+                      }}
+                      onDelete={handleDeleteTask}
+                      onToggleSubtask={handleToggleSubtask}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   const filterPills = [
     { id: 'ALL', label: 'Tất cả' },
@@ -413,13 +599,13 @@ export const TasksPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Nhiệm vụ (Tasks)</h2>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Nhiệm vụ</h2>
             <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
               {tasks.length} việc • {totalCompletedTasks} đã xong ({overallTaskProgress}%)
             </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Quản lý công việc phân lớp theo hàng, sắp xếp dễ dàng và tinh gọn
+            Quản lý công việc theo bảng cột trạng thái hoặc danh sách phân lớp tinh gọn
           </p>
         </div>
 
@@ -432,7 +618,7 @@ export const TasksPage: React.FC = () => {
             }}
           >
             <Plus className="w-4 h-4" />
-            <span>Tạo Task mới</span>
+            <span>Tạo nhiệm vụ mới</span>
           </Button>
         </div>
       </div>
@@ -445,7 +631,7 @@ export const TasksPage: React.FC = () => {
             <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder="🔎 Tìm kiếm task theo tên, môn học, ghi chú..."
+              placeholder="🔎 Tìm kiếm nhiệm vụ theo tên, môn học, ghi chú..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -505,10 +691,10 @@ export const TasksPage: React.FC = () => {
             className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
             <option value="ALL">⚡ Mức ưu tiên</option>
-            <option value="URGENT">Khẩn cấp (Urgent)</option>
-            <option value="HIGH">Cao (High)</option>
-            <option value="MEDIUM">Trung bình (Medium)</option>
-            <option value="LOW">Thấp (Low)</option>
+            <option value="URGENT">Khẩn cấp</option>
+            <option value="HIGH">Ưu tiên cao</option>
+            <option value="MEDIUM">Trung bình</option>
+            <option value="LOW">Thấp</option>
           </select>
 
           {/* Difficulty Filter */}
@@ -518,11 +704,11 @@ export const TasksPage: React.FC = () => {
             className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
             <option value="">🔥 Tất cả độ khó</option>
-            <option value={1}>1 - Dễ (Easy)</option>
+            <option value={1}>1 - Dễ</option>
             <option value={2}>2 - Bình thường</option>
-            <option value={3}>3 - Trung bình</option>
-            <option value={4}>4 - Khó (Hard)</option>
-            <option value={5}>5 - Rất khó</option>
+            <option value={3}>3 - Khó</option>
+            <option value={4}>4 - Rất khó</option>
+            <option value={5}>5 - Cực khó</option>
           </select>
         </div>
       </div>
@@ -541,8 +727,8 @@ export const TasksPage: React.FC = () => {
             onClick={() => setGroupBy('COURSE')}
             className={`px-2.5 py-1 rounded-md font-semibold transition flex items-center gap-1 ${
               groupBy === 'COURSE'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 border border-slate-200 dark:border-slate-700'
+                ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-xs'
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700'
             }`}
           >
             <span>📚 Khóa học / Môn</span>
@@ -553,8 +739,8 @@ export const TasksPage: React.FC = () => {
             onClick={() => setGroupBy('TIME')}
             className={`px-2.5 py-1 rounded-md font-semibold transition flex items-center gap-1 ${
               groupBy === 'TIME'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 border border-slate-200 dark:border-slate-700'
+                ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-xs'
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700'
             }`}
           >
             <span>📅 Thời gian</span>
@@ -565,8 +751,8 @@ export const TasksPage: React.FC = () => {
             onClick={() => setGroupBy('PRIORITY')}
             className={`px-2.5 py-1 rounded-md font-semibold transition flex items-center gap-1 ${
               groupBy === 'PRIORITY'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 border border-slate-200 dark:border-slate-700'
+                ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-xs'
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700'
             }`}
           >
             <span>⚡ Ưu tiên</span>
@@ -577,8 +763,8 @@ export const TasksPage: React.FC = () => {
             onClick={() => setGroupBy('STATUS')}
             className={`px-2.5 py-1 rounded-md font-semibold transition flex items-center gap-1 ${
               groupBy === 'STATUS'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 border border-slate-200 dark:border-slate-700'
+                ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-xs'
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700'
             }`}
           >
             <span>📌 Trạng thái</span>
@@ -589,8 +775,8 @@ export const TasksPage: React.FC = () => {
             onClick={() => setGroupBy('GOAL')}
             className={`px-2.5 py-1 rounded-md font-semibold transition flex items-center gap-1 ${
               groupBy === 'GOAL'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 border border-slate-200 dark:border-slate-700'
+                ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-xs'
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700'
             }`}
           >
             <span>🎯 Mục tiêu</span>
@@ -601,8 +787,8 @@ export const TasksPage: React.FC = () => {
             onClick={() => setGroupBy('NONE')}
             className={`px-2.5 py-1 rounded-md font-semibold transition ${
               groupBy === 'NONE'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 border border-slate-200 dark:border-slate-700'
+                ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-xs'
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700'
             }`}
           >
             Phẳng (Không nhóm)
@@ -631,11 +817,11 @@ export const TasksPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setSortOrder(sortOrder === 'ASC' ? 'DESC' : 'ASC')}
-              className="px-1.5 py-1 text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded flex items-center gap-0.5 transition"
+              className="px-1.5 py-1 text-slate-600 dark:text-slate-300 hover:text-neutral-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded flex items-center gap-0.5 transition"
               title={sortOrder === 'ASC' ? 'Đang sắp xếp: Tăng dần (Bấm để đảo chiều)' : 'Đang sắp xếp: Giảm dần (Bấm để đảo chiều)'}
             >
               {sortOrder === 'ASC' ? (
-                <ArrowUp className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <ArrowUp className="w-3.5 h-3.5 text-neutral-900 dark:text-neutral-100" />
               ) : (
                 <ArrowDown className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
               )}
@@ -649,10 +835,10 @@ export const TasksPage: React.FC = () => {
               onClick={() => setViewLayout('ROWS')}
               className={`p-1.5 rounded-md transition ${
                 viewLayout === 'ROWS'
-                  ? 'bg-blue-600 text-white shadow-2xs'
+                  ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-2xs font-semibold'
                   : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
               }`}
-              title="Hiển thị dạng Hàng phân lớp gọn gàng"
+              title="Hiển thị dạng Hàng danh sách phân lớp"
             >
               <LayoutList className="w-3.5 h-3.5" />
             </button>
@@ -661,10 +847,10 @@ export const TasksPage: React.FC = () => {
               onClick={() => setViewLayout('CARDS')}
               className={`p-1.5 rounded-md transition ${
                 viewLayout === 'CARDS'
-                  ? 'bg-blue-600 text-white shadow-2xs'
+                  ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-2xs font-semibold'
                   : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
               }`}
-              title="Hiển thị dạng Thẻ lưới (Cards)"
+              title="Hiển thị dạng Bảng cột trạng thái (Lưới)"
             >
               <LayoutGrid className="w-3.5 h-3.5" />
             </button>
@@ -694,12 +880,18 @@ export const TasksPage: React.FC = () => {
         </div>
       ) : tasks.length === 0 ? (
         <div className="p-12 text-center bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
-          <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Không tìm thấy task nào phù hợp</p>
+          <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Không tìm thấy nhiệm vụ nào phù hợp</p>
           <p className="text-slate-500 text-xs mt-1">
-            Hãy thử đổi bộ lọc hoặc bấm "Tạo Task mới" ở góc trên
+            Hãy thử đổi bộ lọc hoặc bấm "Tạo nhiệm vụ mới" ở góc trên
           </p>
         </div>
+      ) : viewLayout === 'CARDS' && (groupBy === 'NONE' || groupBy === 'STATUS') ? (
+        /* Flat Status Columns Board */
+        <div className="w-full">
+          {renderStatusBoard(sortedAllTasks)}
+        </div>
       ) : (
+        /* Layered Group Sections (ROWS or Grouped Status Columns in CARDS) */
         <div className="space-y-4">
           {groupedTasks.map((group) => {
             const isCollapsed = !!collapsedGroups[group.id];
@@ -768,22 +960,7 @@ export const TasksPage: React.FC = () => {
                         ))}
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {group.tasks.map((t) => (
-                          <TaskCard
-                            key={t.id}
-                            task={t}
-                            onToggleStatus={handleToggleStatus}
-                            onTransfer={(task) => setTaskToTransfer(task)}
-                            onEdit={(task) => {
-                              setTaskToEdit(task);
-                              setIsTaskModalOpen(true);
-                            }}
-                            onDelete={handleDeleteTask}
-                            onToggleSubtask={handleToggleSubtask}
-                          />
-                        ))}
-                      </div>
+                      renderStatusBoard(group.tasks)
                     )}
                   </div>
                 )}
@@ -799,10 +976,12 @@ export const TasksPage: React.FC = () => {
         onClose={() => {
           setIsTaskModalOpen(false);
           setTaskToEdit(null);
+          setModalInitialStatus(undefined);
         }}
         onSave={handleSaveTask}
         taskToEdit={taskToEdit}
         goals={goals}
+        initialStatus={modalInitialStatus}
       />
 
       <TaskTransferModal

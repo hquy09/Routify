@@ -91,7 +91,7 @@ export const WeeklyReviewModal: React.FC<WeeklyReviewModalProps> = ({
 **Tóm tắt:** ${review.executive_summary || ''}
 
 ---
-### 🎯 1. Chỉ số cốt lõi (Scorecards)
+### 🎯 1. Chỉ số cốt lõi
 - **Nhiệm vụ:** ${review.completed_tasks}/${review.total_tasks} hoàn thành (${review.completion_rate}%) • ${review.difficulty_points} điểm nỗ lực
 - **Nhất quán:** ${review.consistency_score}/10 (Độ ổn định: ${review.stability_pct}%)
 - **Bất khả kháng:** ${review.force_majeure_count} ca bảo lưu (85% điểm) • ${review.unexcused_delay_count} ca trì hoãn chủ quan
@@ -99,7 +99,7 @@ export const WeeklyReviewModal: React.FC<WeeklyReviewModalProps> = ({
 - **Áp lực & Tinh thần:** ${review.avg_daily_focus_hours}h/ngày (${review.burnout_risk_level})
 
 ---
-### 📝 2. Phản tư & Chiến lược (Strategic Reflection)
+### 📝 2. Phản tư & Định hướng
 1. **Điều làm tốt:**
 ${whatWentWell || review.draft_what_went_well || '(Chưa điền)'}
 
@@ -112,7 +112,7 @@ ${delayedReflection || review.draft_delayed_reflection || '(Chưa điền)'}
 4. **Kế hoạch tuần tới:**
 ${nextWeekChanges || review.draft_next_week_changes || '(Chưa điền)'}
 
-*Xuất tự động từ LifeOS Intelligence Platform*`;
+*Xuất tự động từ hệ thống Routify*`;
 
     try {
       await navigator.clipboard.writeText(md);
@@ -202,7 +202,7 @@ ${nextWeekChanges || review.draft_next_week_changes || '(Chưa điền)'}
                   </Badge>
                 ) : (
                   <Badge variant="secondary" className="text-[10px] font-semibold">
-                    Xem trực tiếp (Live Snapshot)
+                    Xem trực tiếp
                   </Badge>
                 )}
               </div>

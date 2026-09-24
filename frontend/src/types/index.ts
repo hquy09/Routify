@@ -86,7 +86,7 @@ export const DIFFICULTY_CONFIG: Record<number, {
   description: string;
 }> = {
   1: {
-    label: 'Dễ (Easy)',
+    label: 'Dễ',
     shortLabel: 'D1',
     color: 'text-emerald-600 dark:text-emerald-400',
     bg: 'bg-emerald-50 dark:bg-emerald-950/40',
@@ -95,7 +95,7 @@ export const DIFFICULTY_CONFIG: Record<number, {
     description: 'Bài tập ngắn, việc vặt hoặc ôn nhanh dưới 15-30 phút (+1 điểm)',
   },
   2: {
-    label: 'Bình thường (Normal)',
+    label: 'Bình thường',
     shortLabel: 'D2',
     color: 'text-sky-600 dark:text-sky-400',
     bg: 'bg-sky-50 dark:bg-sky-950/40',
@@ -104,7 +104,7 @@ export const DIFFICULTY_CONFIG: Record<number, {
     description: 'Nội dung bài học chuẩn, làm bài tập về nhà mức trung bình (+2 điểm)',
   },
   3: {
-    label: 'Khó (Hard)',
+    label: 'Khó',
     shortLabel: 'D3',
     color: 'text-amber-600 dark:text-amber-400',
     bg: 'bg-amber-50 dark:bg-amber-950/40',
@@ -113,7 +113,7 @@ export const DIFFICULTY_CONFIG: Record<number, {
     description: 'Chuyên đề kiến thức sâu, dạng bài phân loại 8-9 điểm (+3 điểm)',
   },
   4: {
-    label: 'Rất khó (Very Hard)',
+    label: 'Rất khó',
     shortLabel: 'D4',
     color: 'text-orange-600 dark:text-orange-400',
     bg: 'bg-orange-50 dark:bg-orange-950/40',
@@ -122,7 +122,7 @@ export const DIFFICULTY_CONFIG: Record<number, {
     description: 'Luyện đề thi thử thực chiến, dự án dài hoặc bài toán phức tạp (+4 điểm)',
   },
   5: {
-    label: 'Cực khó (Extreme)',
+    label: 'Cực khó',
     shortLabel: 'D5',
     color: 'text-rose-600 dark:text-rose-400',
     bg: 'bg-rose-50 dark:bg-rose-950/50',
@@ -133,11 +133,11 @@ export const DIFFICULTY_CONFIG: Record<number, {
 };
 
 export const DIFFICULTY_LABELS: Record<number, { label: string; color: string }> = {
-  1: { label: 'Easy', color: 'text-emerald-400' },
-  2: { label: 'Normal', color: 'text-sky-400' },
-  3: { label: 'Medium', color: 'text-amber-400' },
-  4: { label: 'Hard', color: 'text-orange-400' },
-  5: { label: 'Extreme', color: 'text-rose-500' },
+  1: { label: 'Dễ', color: 'text-emerald-400' },
+  2: { label: 'Bình thường', color: 'text-sky-400' },
+  3: { label: 'Khó', color: 'text-amber-400' },
+  4: { label: 'Rất khó', color: 'text-orange-400' },
+  5: { label: 'Cực khó', color: 'text-rose-500' },
 };
 
 export interface Subtask {

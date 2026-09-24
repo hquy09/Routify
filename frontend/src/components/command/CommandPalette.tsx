@@ -120,7 +120,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 <div className="flex items-center gap-2">
                   <Plus className="w-4 h-4 text-neutral-900 dark:text-neutral-100" />
                   <span>
-                    Tạo nhanh Task: <strong>"{query.trim()}"</strong>
+                    Tạo nhanh nhiệm vụ: <strong>"{query.trim()}"</strong>
                   </span>
                 </div>
                 <div className="flex items-center gap-1 text-[10px] text-neutral-900 dark:text-neutral-100 font-semibold">
@@ -145,7 +145,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               >
                 <BarChart3 className="w-4 h-4 text-amber-500 shrink-0" />
-                <span>Mở Tổng quan (Thống kê & Heatmap)</span>
+                <span>Mở Tổng quan</span>
               </button>
               <button
                 onClick={() => {
@@ -155,7 +155,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               >
                 <Calendar className="w-4 h-4 text-neutral-900 dark:text-neutral-100 shrink-0" />
-                <span>Mở Lịch biểu (Lịch tuần & tháng)</span>
+                <span>Mở Lịch biểu</span>
               </button>
               <button
                 onClick={() => {
@@ -165,7 +165,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               >
                 <CheckSquare className="w-4 h-4 text-emerald-500 shrink-0" />
-                <span>Mở Nhiệm vụ/ Mục tiêu</span>
+                <span>Mở Nhiệm vụ</span>
               </button>
               <button
                 onClick={() => {
@@ -175,7 +175,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               >
                 <BookOpen className="w-4 h-4 text-sky-500 shrink-0" />
-                <span>Mở Khoá học (Cây kiến thức)</span>
+                <span>Mở Khóa học</span>
               </button>
               <button
                 onClick={() => {
@@ -185,7 +185,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               >
                 <HeartPulse className="w-4 h-4 text-rose-500 shrink-0" />
-                <span>Mở Quản lý sức khoẻ tinh thần & Độ Căng</span>
+                <span>Mở Sức khỏe tinh thần</span>
               </button>
               <button
                 onClick={() => {
@@ -195,7 +195,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               >
                 <Smartphone className="w-4 h-4 text-purple-500 shrink-0" />
-                <span>Mở Quản lý thời gian sức khoẻ kỹ thuật số</span>
+                <span>Mở Cân bằng kỹ thuật số</span>
               </button>
               <button
                 onClick={() => {

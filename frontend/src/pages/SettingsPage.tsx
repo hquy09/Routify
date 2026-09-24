@@ -48,7 +48,7 @@ interface SearchIndexItem {
 
 const SEARCH_INDEX: SearchIndexItem[] = [
   { id: 'profile', title: 'Hồ sơ & Tên hiển thị', tab: 'GENERAL', tabName: 'Chung', keywords: ['tên', 'name', 'user', 'hồ sơ', 'chào'] },
-  { id: 'theme', title: 'Giao diện Sáng / Tối (Theme)', tab: 'GENERAL', tabName: 'Chung', keywords: ['theme', 'tối', 'sáng', 'dark', 'light', 'màu sắc'] },
+  { id: 'theme', title: 'Giao diện Sáng / Tối', tab: 'GENERAL', tabName: 'Chung', keywords: ['theme', 'tối', 'sáng', 'dark', 'light', 'màu sắc'] },
   { id: 'task-defaults', title: 'Quy chuẩn & Độ khó mặc định', tab: 'GENERAL', tabName: 'Chung', keywords: ['độ khó', 'ưu tiên', 'priority', 'difficulty', 'task', 'nhiệm vụ'] },
   { id: 'work-hours', title: 'Khung giờ sinh hoạt & Học tập', tab: 'GENERAL', tabName: 'Chung', keywords: ['giờ', 'khung giờ', 'bắt đầu', 'kết thúc', 'thời gian'] },
   { id: 'mental-health', title: 'Quản lý Sức khỏe Tinh thần & Mức độ Căng thẳng', tab: 'GENERAL', tabName: 'Chung', keywords: ['sức khỏe', 'tinh thần', 'áp lực', 'căng thẳng', 'mental', 'stress', 'sức khoẻ', 'tắt bật'] },
@@ -56,16 +56,16 @@ const SEARCH_INDEX: SearchIndexItem[] = [
   { id: 'gamification', title: 'Hệ thống Cày Cuốc & 11 Cấp Bậc Danh Hiệu', tab: 'MASTERY_RANKS', tabName: 'Danh Hiệu & Rank', keywords: ['cày cuốc', 'rank', 'chiến thần', 'tuyệt đối', 'kinh nghiệm', 'exp', 'gamification', 'khóa học', 'danh hiệu', 'thần thoại', 'hào quang', 'topbar'] },
   { id: 'telegram', title: 'Bot Telegram & Nhắc nhở', tab: 'NOTIFICATIONS', tabName: 'Thông báo', keywords: ['telegram', 'bot', 'token', 'chat id', 'nhắc nhở', 'thông báo'] },
   { id: 'sound-alert', title: 'Âm thanh thông báo', tab: 'NOTIFICATIONS', tabName: 'Thông báo', keywords: ['âm thanh', 'sound', 'chuông', 'tiếng'] },
-  { id: 'browser-notif', title: 'Thông báo trên trình duyệt (Web Push)', tab: 'NOTIFICATIONS', tabName: 'Thông báo', keywords: ['trình duyệt', 'browser', 'web', 'push', 'thông báo'] },
+  { id: 'browser-notif', title: 'Thông báo trên trình duyệt', tab: 'NOTIFICATIONS', tabName: 'Thông báo', keywords: ['trình duyệt', 'browser', 'web', 'push', 'thông báo'] },
   { id: 'categories', title: 'Định mức màn hình & Danh mục', tab: 'SCREENTIME', tabName: 'Kỷ luật', keywords: ['screentime', 'game', 'mạng xã hội', 'định mức', 'giới hạn', 'phút', 'thời gian'] },
   { id: 'category-types', title: 'Nhóm phân loại & Hiệu ứng', tab: 'SCREENTIME', tabName: 'Kỷ luật', keywords: ['phân loại', 'nhóm', 'type', 'thưởng', 'phạt', 'màu'] },
   { id: 'discipline-scoring', title: 'Thuật toán & Cơ chế tính điểm kỷ luật', tab: 'ADVANCED', tabName: 'Nâng cao', keywords: ['kỷ luật', 'rating', 'thuật toán', 'trừ điểm', 'ngưỡng', 'hệ số', 'công thức'] },
-  { id: 'quiet-hours', title: 'Chế độ Giờ yên tĩnh (Quiet Hours)', tab: 'ADVANCED', tabName: 'Nâng cao', keywords: ['yên tĩnh', 'quiet', 'đêm', 'ngủ', 'không làm phiền'] },
+  { id: 'quiet-hours', title: 'Chế độ Giờ yên tĩnh', tab: 'ADVANCED', tabName: 'Nâng cao', keywords: ['yên tĩnh', 'quiet', 'đêm', 'ngủ', 'không làm phiền'] },
   { id: 'smart-schedule', title: 'Gợi ý xếp lịch thông minh', tab: 'ADVANCED', tabName: 'Nâng cao', keywords: ['gợi ý', 'thông minh', 'smart', 'schedule', 'xếp lịch'] },
-  { id: 'gdrive', title: 'Google Drive Sync Engine', tab: 'BACKUP', tabName: 'Sao lưu', keywords: ['drive', 'google', 'đồng bộ', 'sync', 'đám mây', 'cloud'] },
+  { id: 'gdrive', title: 'Đồng bộ Google Drive', tab: 'BACKUP', tabName: 'Sao lưu', keywords: ['drive', 'google', 'đồng bộ', 'sync', 'đám mây', 'cloud'] },
   { id: 'backup-zip', title: 'Gói sao lưu di động (.zip)', tab: 'BACKUP', tabName: 'Sao lưu', keywords: ['zip', 'sao lưu', 'backup', 'xuất', 'nhập', 'khôi phục'] },
   { id: 'db-stats', title: 'Cơ sở dữ liệu SQLite & Dung lượng', tab: 'BACKUP', tabName: 'Sao lưu', keywords: ['sqlite', 'database', 'cơ sở dữ liệu', 'dung lượng'] },
-  { id: 'danger-reset', title: 'Đặt lại về dữ liệu trống (Reset)', tab: 'DANGER', tabName: 'Vùng nguy hiểm', keywords: ['reset', 'xóa', 'trống', 'khôi phục', 'nguy hiểm'] },
+  { id: 'danger-reset', title: 'Đặt lại về dữ liệu trống', tab: 'DANGER', tabName: 'Vùng nguy hiểm', keywords: ['reset', 'xóa', 'trống', 'khôi phục', 'nguy hiểm'] },
 ];
 
 export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void }> = ({
@@ -798,7 +798,7 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
     setIsResetting(true);
     try {
       const res = await api.settings.resetDatabase('RESET', false);
-      alert(`Đã đặt lại dữ liệu về trạng thái trống hoàn toàn (Clean Blank State)!\nBản sao lưu an toàn: ${res.safety_backup}`);
+      alert(`Đã đặt lại dữ liệu về trạng thái trống hoàn toàn!\nBản sao lưu an toàn: ${res.safety_backup}`);
       setIsResetModalOpen(false);
       setResetConfirmText('');
       loadSettingsData();
@@ -1021,7 +1021,7 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
         <div>
           <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
             <SettingsIcon className="w-5 h-5 text-neutral-900 dark:text-neutral-100" />
-            <span>Cài đặt hệ thống (Settings)</span>
+            <span>Cài đặt hệ thống</span>
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Không gian tùy biến cá nhân hóa, bot thông báo, kỷ luật màn hình và bảo toàn dữ liệu.
@@ -1137,12 +1137,12 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-4 shadow-xs">
                 <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800 text-sm font-bold text-slate-800 dark:text-slate-200">
                   <User className="w-4 h-4 text-neutral-900 dark:text-neutral-100" />
-                  <span>Hồ sơ người dùng (User Profile)</span>
+                  <span>Hồ sơ người dùng</span>
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                   <div>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 block">Tên hiển thị (Greeting Name)</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 block">Tên hiển thị</span>
                     <span className="text-slate-500 dark:text-slate-400">
                       Tên được dùng trong câu chào "Xin chào, [name]" trên thanh lịch trình và tổng kết.
                     </span>
@@ -1171,20 +1171,20 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-4 shadow-xs">
                 <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800 text-sm font-bold text-slate-800 dark:text-slate-200">
                   <Palette className="w-4 h-4 text-neutral-900 dark:text-neutral-100" />
-                  <span>Giao diện hiển thị (Appearance)</span>
+                  <span>Giao diện hiển thị</span>
                 </div>
 
                 <div className="flex items-center justify-between text-xs">
                   <div>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 block">Chế độ màu (Theme)</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 block">Chế độ màu</span>
                     <span className="text-slate-500 dark:text-slate-400">
-                      Chuyển đổi giữa chế độ Tối (Dark) và Sáng (Light) với bảng màu chuẩn shadcn/ui.
+                      Chuyển đổi giữa giao diện Tối và Sáng.
                     </span>
                   </div>
 
                   <Button variant="outline" onClick={onToggleTheme} className="gap-2">
                     {isDark ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-indigo-500" />}
-                    <span>{isDark ? 'Chế độ Tối (Dark)' : 'Chế độ Sáng (Light)'}</span>
+                    <span>{isDark ? 'Chế độ Tối' : 'Chế độ Sáng'}</span>
                   </Button>
                 </div>
               </div>
@@ -1194,7 +1194,7 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-200">
                     <Star className="w-4 h-4 text-neutral-900 dark:text-neutral-100" />
-                    <span>Quy chuẩn nhiệm vụ mặc định (Task Defaults)</span>
+                    <span>Quy chuẩn nhiệm vụ mặc định</span>
                   </div>
                   <Badge variant="secondary" className="text-[10px]">Tự động áp dụng</Badge>
                 </div>
@@ -1227,10 +1227,10 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
                       onChange={(e) => setDefaultPriority(e.target.value)}
                       className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-slate-100 text-xs"
                     >
-                      <option value="LOW">Thấp (LOW)</option>
-                      <option value="MEDIUM">Trung bình (MEDIUM)</option>
-                      <option value="HIGH">Ưu tiên cao (HIGH)</option>
-                      <option value="URGENT">Khẩn cấp (URGENT)</option>
+                      <option value="LOW">Thấp</option>
+                      <option value="MEDIUM">Trung bình</option>
+                      <option value="HIGH">Ưu tiên cao</option>
+                      <option value="URGENT">Khẩn cấp</option>
                     </select>
                   </div>
 
@@ -1294,7 +1294,7 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-4 shadow-xs">
                 <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800 text-sm font-bold text-slate-800 dark:text-slate-200">
                   <Clock className="w-4 h-4 text-neutral-900 dark:text-neutral-100" />
-                  <span>Khung giờ sinh hoạt & Học tập (Daily Active Hours)</span>
+                  <span>Khung giờ sinh hoạt & Học tập</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
@@ -1308,7 +1308,7 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
                       onChange={(e) => setDayStartHour(e.target.value)}
                       className="text-xs"
                     />
-                    <span className="text-[11px] text-slate-400 mt-1 block">Khung giờ mở đầu lịch trình trên Timeline.</span>
+                    <span className="text-[11px] text-slate-400 mt-1 block">Khung giờ mở đầu lịch trình trên dòng thời gian.</span>
                   </div>
 
                   <div>
@@ -1351,7 +1351,7 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
                       Bật tính năng Quản lý Sức khỏe Tinh thần
                     </span>
                     <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                      Khi tắt, chỉ số Áp lực & Sức khỏe tinh thần trên thanh Topbar và trong Báo cáo tuần (Weekly Report) sẽ hiển thị màu xám với viền nét đứt thể hiện trạng thái tạm dừng theo dõi.
+                      Khi tắt, chỉ số Áp lực & Sức khỏe tinh thần trên thanh Topbar và trong Báo cáo tuần sẽ hiển thị màu xám với viền nét đứt thể hiện trạng thái tạm dừng theo dõi.
                     </span>
                   </div>
                   <button
@@ -1373,7 +1373,7 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
                   <div className="p-3 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 text-xs flex items-center gap-2">
                     <HeartPulse className="w-4 h-4 shrink-0 text-slate-400" />
                     <span>
-                      Đang ở chế độ tắt: Topbar và Weekly Report sẽ thể hiện viền nét đứt màu xám. Bạn có thể bật lại bất cứ lúc nào.
+                      Đang ở chế độ tắt: Topbar và Báo cáo tuần sẽ thể hiện viền nét đứt màu xám. Bạn có thể bật lại bất cứ lúc nào.
                     </span>
                   </div>
                 )}
@@ -1384,7 +1384,7 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-200">
                     <Smartphone className="w-4 h-4 text-emerald-500" />
-                    <span>Quản lý Kỷ luật & Cân bằng Kỹ thuật số (Digital Wellbeing)</span>
+                    <span>Quản lý Kỷ luật & Cân bằng Kỹ thuật số</span>
                   </div>
                   <Badge
                     variant={digitalWellbeingEnabled ? 'success' : 'secondary'}
@@ -1395,7 +1395,7 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
                 </div>
 
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Giám sát thời gian sử dụng thiết bị (Screentime), định mức ứng dụng và tính toán Chỉ số Nhất quán & Kỷ luật.
+                  Giám sát thời gian sử dụng thiết bị, định mức ứng dụng và tính toán Chỉ số Nhất quán & Kỷ luật.
                 </p>
 
                 <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
@@ -2103,7 +2103,7 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                            Hệ Thống Danh Hiệu & Chế Độ Cày Cuốc (Gamification Mastery)
+                            Hệ Thống Danh Hiệu & Cấp Bậc Rèn Luyện
                           </span>
                           <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
                             <Sparkles className="w-2.5 h-2.5" />
@@ -2283,7 +2283,7 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
                   <div className="pb-2 border-b border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-200">
                       <Crown className="w-4 h-4 text-amber-500" />
-                      <span>Bảng Vinh Danh 11 Cấp Bậc Danh Hiệu (Mastery Ranks)</span>
+                      <span>Bảng vinh danh 11 cấp bậc danh hiệu</span>
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       Đường cong độ khó lũy tiến với hiệu ứng màu sắc kim loại và đá quý cao cấp cho từng bậc.
@@ -2338,7 +2338,7 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
                                 <Flame className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-                                5 Tầng Cảnh Giới Thần Thoại (Mythic Prestige Stages):
+                                5 Tầng Cảnh Giới Thần Thoại:
                               </span>
                               <span className="text-[10px] font-mono text-amber-600 dark:text-amber-400 font-semibold">
                                 Điểm càng cao hiệu ứng hào quang càng bùng nổ
@@ -2730,7 +2730,7 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
                   <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex flex-col justify-between space-y-2">
                     <div>
                       <span className="font-semibold text-xs text-slate-800 dark:text-slate-200 block">
-                        Đồng bộ ngay (Sync Now)
+                        Đồng bộ ngay
                       </span>
                       <span className="text-[11px] text-slate-500 dark:text-slate-400">
                         Tạo bản snapshot an toàn và đẩy lên Google Drive / snapshot local.
@@ -2752,7 +2752,7 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
                   <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex flex-col justify-between space-y-2">
                     <div>
                       <span className="font-semibold text-xs text-slate-800 dark:text-slate-200 block">
-                        Tự động đồng bộ (Auto Sync)
+                        Tự động đồng bộ
                       </span>
                       <span className="text-[11px] text-slate-500 dark:text-slate-400">
                         Tự động tạo snapshot đồng bộ định kỳ khi có thay đổi dữ liệu lớn.
@@ -2947,12 +2947,12 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
               <div className="border border-rose-200 dark:border-rose-900/60 bg-rose-50/20 dark:bg-rose-950/10 rounded-xl p-5 space-y-4 shadow-xs">
                 <div className="flex items-center gap-2 pb-2 border-b border-rose-200 dark:border-rose-900/60 text-sm font-bold text-rose-700 dark:text-rose-400">
                   <AlertTriangle className="w-4 h-4 text-rose-600" />
-                  <span>Vùng nguy hiểm (Danger Zone)</span>
+                  <span>Vùng nguy hiểm</span>
                 </div>
 
                 <div className="space-y-3 text-xs">
                   <span className="font-semibold text-slate-900 dark:text-slate-100 block text-sm">
-                    Đặt lại về dữ liệu trống hoàn toàn (Clean Blank State)
+                    Đặt lại về dữ liệu trống hoàn toàn
                   </span>
                   <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                     Hành động này sẽ xóa sạch toàn bộ nhiệm vụ, khóa học, lịch trình cố định, mục tiêu, nhật ký và định mức màn hình.
@@ -3026,7 +3026,7 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-slate-700 dark:text-slate-300 font-semibold">
-                    Phân loại (Type) *
+                    Phân loại *
                   </label>
                   <button
                     type="button"
@@ -3135,7 +3135,7 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
 
               <div>
                 <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                  Màu sắc nhận diện (Badge color)
+                  Màu sắc nhận diện
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -3211,7 +3211,7 @@ export const SettingsPage: React.FC<{ isDark: boolean; onToggleTheme: () => void
 
             <div className="space-y-2 text-xs text-slate-600 dark:text-slate-300 leading-relaxed bg-rose-50/50 dark:bg-rose-950/20 p-3 rounded-lg border border-rose-100 dark:border-rose-900/40">
               <p>• Toàn bộ nhiệm vụ, khóa học, lịch trình cố định và nhật ký sẽ bị xóa sạch.</p>
-              <p>• Hệ thống sẽ trở về <strong>trạng thái trắng 100% (Clean Blank State)</strong>, không tự động nạp bất kỳ dữ liệu mẫu (preset) nào.</p>
+              <p>• Hệ thống sẽ trở về <strong>trạng thái trắng 100%</strong>, không tự động nạp bất kỳ dữ liệu mẫu nào.</p>
               <p>• Bản sao lưu an toàn tự động được lưu trong thư mục `backups/`.</p>
             </div>
 

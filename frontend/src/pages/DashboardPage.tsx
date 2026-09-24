@@ -117,7 +117,7 @@ export const DashboardPage: React.FC = () => {
           {/* Today */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-              <span>Hôm nay (Today)</span>
+              <span>Hôm nay</span>
               <span className="font-bold text-slate-900 dark:text-slate-200">{stats.completion_rate_today}%</span>
             </div>
             <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 mt-2 overflow-hidden">
@@ -131,7 +131,7 @@ export const DashboardPage: React.FC = () => {
           {/* This Week */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-              <span>Tuần này (This Week)</span>
+              <span>Tuần này</span>
               <span className="font-bold text-emerald-600 dark:text-emerald-400">{stats.completion_rate_this_week}%</span>
             </div>
             <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 mt-2 overflow-hidden">
@@ -145,7 +145,7 @@ export const DashboardPage: React.FC = () => {
           {/* This Month */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-              <span>Tháng này (This Month)</span>
+              <span>Tháng này</span>
               <span className="font-bold text-sky-600 dark:text-sky-400">{stats.completion_rate_this_month}%</span>
             </div>
             <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 mt-2 overflow-hidden">
@@ -191,7 +191,7 @@ export const DashboardPage: React.FC = () => {
             <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-2">
                 <Target className="w-4 h-4 text-neutral-900 dark:text-neutral-100" />
-                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">Tiến độ theo Mục tiêu lớn (Goals)</h4>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">Tiến độ theo Mục tiêu</h4>
               </div>
             </div>
 
@@ -228,7 +228,7 @@ export const DashboardPage: React.FC = () => {
             <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">Tiến độ theo Dự án (Projects)</h4>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">Tiến độ theo Dự án</h4>
               </div>
             </div>
 
@@ -278,7 +278,7 @@ export const DashboardPage: React.FC = () => {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Hiệu suất cá nhân (Dashboard)</h2>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Hiệu suất cá nhân</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Trung tâm phân tích năng suất, tiến độ mục tiêu, streak và đánh giá tuần
           </p>
@@ -291,14 +291,14 @@ export const DashboardPage: React.FC = () => {
             className="text-xs"
           >
             <Award className="w-4 h-4 text-amber-500" />
-            <span>Đánh giá tuần (Weekly Review)</span>
+            <span>Đánh giá tuần</span>
           </Button>
 
           {/* Full Screen / Full View Button */}
           <button
             onClick={() => setIsFullScreen(true)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:opacity-90 transition shadow-2xs cursor-pointer"
-            title="Phóng to Dashboard toàn màn hình (Full View - ẩn thanh bên và thanh trên để tập trung 100% diện tích cho biểu đồ và chỉ số)"
+            title="Hiển thị toàn màn hình"
           >
             <Maximize2 className="w-3.5 h-3.5" />
             <span>Toàn màn hình</span>

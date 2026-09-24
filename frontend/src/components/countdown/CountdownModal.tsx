@@ -385,7 +385,7 @@ export const CountdownModal: React.FC<CountdownModalProps> = ({
                 <div>
                   <label className="block font-semibold text-neutral-800 dark:text-neutral-200 mb-1 flex items-center gap-1.5">
                     <Palette className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400" />
-                    <span>Màu chủ đạo sự kiện (Theme Color)</span>
+                    <span>Màu chủ đạo sự kiện</span>
                   </label>
                   <div className="flex items-center gap-2 flex-wrap p-2 rounded-xl bg-neutral-50 dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-700">
                     {COLOR_PRESETS.map((p) => (
@@ -574,7 +574,7 @@ export const CountdownModal: React.FC<CountdownModalProps> = ({
                   <div className="p-3 rounded-xl border border-indigo-200 dark:border-indigo-800/80 bg-indigo-50/40 dark:bg-indigo-950/30 space-y-3">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-900 dark:text-indigo-200">
                       <Sparkles className="w-4 h-4 text-amber-500" />
-                      <span>Tùy chỉnh 2 màu đổ dốc Gradient (Fonty Style)</span>
+                      <span>Tùy chỉnh màu sắc dải chuyển (Gradient)</span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
@@ -646,7 +646,7 @@ export const CountdownModal: React.FC<CountdownModalProps> = ({
                   <div className="p-3 rounded-xl border border-blue-200 dark:border-blue-800/80 bg-blue-50/40 dark:bg-blue-950/30 space-y-3">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-blue-900 dark:text-blue-200">
                       <Clock className="w-4 h-4 text-blue-600" />
-                      <span>Hướng chạy vòng cung tiến độ (Swiss Gauge)</span>
+                      <span>Hướng chạy vòng cung tiến độ</span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
@@ -684,7 +684,7 @@ export const CountdownModal: React.FC<CountdownModalProps> = ({
                   <div className="p-3 rounded-xl border border-emerald-200 dark:border-emerald-800/80 bg-emerald-50/40 dark:bg-emerald-950/30 space-y-3">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-900 dark:text-emerald-200">
                       <LayoutGrid className="w-4 h-4 text-emerald-600" />
-                      <span>Cấu hình Ma trận Lưới Ô (Grid Style)</span>
+                      <span>Cấu hình ma trận lưới</span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
@@ -778,7 +778,7 @@ export const CountdownModal: React.FC<CountdownModalProps> = ({
                   <div className="p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/60 dark:bg-neutral-850/60 space-y-2.5 animate-in fade-in duration-150">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-800 dark:text-neutral-200">
                       <Palette className="w-4 h-4 text-amber-500" />
-                      <span>Màu chủ đạo thẻ (Theme Color)</span>
+                      <span>Màu chủ đạo thẻ</span>
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap">

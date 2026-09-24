@@ -18,51 +18,51 @@ export const SystemLegendModal: React.FC<SystemLegendModalProps> = ({ isOpen, on
   if (!isOpen) return null;
 
   const categories = [
-    { id: 'SCHOOL', label: 'Trường học (School)', color: '#3b82f6', desc: 'Giờ học chính khóa trên lớp, thời khóa biểu nhà trường' },
-    { id: 'STUDY', label: 'Học tập / Ôn thi (Study)', color: '#8b5cf6', desc: 'Tự học, học thêm, làm bài tập về nhà, luyện chuyên đề' },
-    { id: 'WORK', label: 'Làm việc (Work)', color: '#f59e0b', desc: 'Dự án cá nhân, công việc, kiếm tiền, nhiệm vụ tổ chức' },
-    { id: 'EXERCISE', label: 'Thể thao / Gym (Exercise)', color: '#10b981', desc: 'Chạy bộ, tập gym, rèn luyện thể lực, nâng cao sức bền' },
-    { id: 'SLEEP', label: 'Giấc ngủ (Sleep)', color: '#64748b', desc: 'Khung giờ ngủ cố định, tái tạo năng lượng cho não bộ' },
-    { id: 'PERSONAL', label: 'Cá nhân (Personal)', color: '#ec4899', desc: 'Ăn uống, vệ sinh cá nhân, nghỉ ngơi, thời gian riêng tư' },
-    { id: 'OTHER', label: 'Khác (Other)', color: '#6366f1', desc: 'Các hoạt động cố định khác trong ngày' },
-    { id: 'CUSTOM', label: 'Tùy chỉnh (Custom)', color: '#a855f7', desc: 'Danh mục tự tạo và quản lý trong Cài đặt / Kỷ luật' },
+    { id: 'SCHOOL', label: 'Trường học', color: '#3b82f6', desc: 'Giờ học chính khóa trên lớp, thời khóa biểu nhà trường' },
+    { id: 'STUDY', label: 'Học tập / Ôn thi', color: '#8b5cf6', desc: 'Tự học, học thêm, làm bài tập về nhà, luyện chuyên đề' },
+    { id: 'WORK', label: 'Làm việc', color: '#f59e0b', desc: 'Dự án cá nhân, công việc, kiếm tiền, nhiệm vụ tổ chức' },
+    { id: 'EXERCISE', label: 'Thể thao / Rèn luyện', color: '#10b981', desc: 'Chạy bộ, tập gym, rèn luyện thể lực, nâng cao sức bền' },
+    { id: 'SLEEP', label: 'Giấc ngủ', color: '#64748b', desc: 'Khung giờ ngủ cố định, tái tạo năng lượng cho não bộ' },
+    { id: 'PERSONAL', label: 'Cá nhân', color: '#ec4899', desc: 'Ăn uống, vệ sinh cá nhân, nghỉ ngơi, thời gian riêng tư' },
+    { id: 'OTHER', label: 'Khác', color: '#6366f1', desc: 'Các hoạt động cố định khác trong ngày' },
+    { id: 'CUSTOM', label: 'Tùy chỉnh', color: '#a855f7', desc: 'Danh mục tự tạo và quản lý trong Cài đặt' },
   ];
 
   const statuses = [
     { code: 'TODO', label: 'Chưa hoàn thành', icon: '⭕', color: 'text-slate-700 dark:text-slate-300', bg: 'bg-slate-100 dark:bg-slate-800', desc: 'Nhiệm vụ mới tạo, đang chờ bắt đầu thực hiện' },
     { code: 'IN_PROGRESS', label: 'Đang thực hiện', icon: '⏳', color: 'text-blue-700 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/60', desc: 'Nhiệm vụ đang diễn ra hoặc đang trong phiên tập trung' },
-    { code: 'PARTIAL', label: 'Hoàn thành một phần', icon: '🌓', color: 'text-amber-700 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/60', desc: 'Đã hoàn thành một số subtasks hoặc nội dung chính' },
-    { code: 'COMPLETED', label: 'Đã hoàn thành', icon: '✅', color: 'text-emerald-700 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/60', desc: 'Hoàn tất trọn vẹn, được cộng điểm độ khó vào thống kê EXP' },
-    { code: 'DELAYED', label: 'Chậm trễ', icon: '⚠️', color: 'text-rose-700 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-950/60', desc: 'Đã quá hạn chót nhưng chưa xong, cần ưu tiên hoặc chuyển giao' },
-    { code: 'TRANSFERRED', label: 'Đã chuyển giao', icon: '🔄', color: 'text-purple-700 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-950/60', desc: 'Được dời sang ngày khác, hệ thống bảo toàn lịch sử & tạo task mới' },
+    { code: 'PARTIAL', label: 'Hoàn thành một phần', icon: '🌓', color: 'text-amber-700 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/60', desc: 'Đã hoàn thành một số việc con hoặc nội dung chính' },
+    { code: 'COMPLETED', label: 'Đã hoàn thành', icon: '✅', color: 'text-emerald-700 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/60', desc: 'Hoàn tất trọn vẹn, được cộng điểm độ khó vào thống kê điểm thưởng' },
+    { code: 'DELAYED', label: 'Chậm trễ', icon: '⚠️', color: 'text-rose-700 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-950/60', desc: 'Đã quá hạn chót nhưng chưa xong, cần ưu tiên hoặc chuyển tiếp' },
+    { code: 'TRANSFERRED', label: 'Đã chuyển tiếp', icon: '🔄', color: 'text-purple-700 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-950/60', desc: 'Được dời sang ngày khác, hệ thống bảo toàn lịch sử và tạo nhiệm vụ mới' },
     { code: 'CANCELLED', label: 'Đã hủy', icon: '❌', color: 'text-slate-500 dark:text-slate-400', bg: 'bg-slate-100 dark:bg-slate-800/40', desc: 'Nhiệm vụ không còn cần thiết hoặc bị hủy bỏ' },
   ];
 
   const calendarSymbols = [
     {
-      title: 'Kim chỉ giờ thực tế (Live Time Needle)',
+      title: 'Thời gian hiện tại',
       icon: <span className="w-3 h-3 rounded-full bg-rose-500 shadow-sm" />,
-      desc: 'Đường kẻ ngang màu đỏ/hồng di chuyển tự động trên trục 24h để bạn luôn biết chính xác đang ở mốc thời gian nào trong ngày.'
+      desc: 'Đường kẻ ngang màu đỏ di chuyển tự động trên trục 24 giờ để bạn luôn biết chính xác mốc thời gian hiện tại trong ngày.'
     },
     {
-      title: 'Khóa học & Bài học đính kèm (📚 Course Attachment)',
+      title: 'Khóa học & Bài học đính kèm',
       icon: <BookOpen className="w-4 h-4 text-emerald-500" />,
-      desc: 'Gắn trực tiếp bài học thuộc Hệ thống Khóa học vào Task. Bấm vào giúp tra cứu tiến độ học tập 2 chiều.'
+      desc: 'Gắn trực tiếp bài học thuộc Hệ thống Khóa học vào nhiệm vụ để tra cứu tiến độ học tập liên thông 2 chiều.'
     },
     {
-      title: 'Tiến độ Subtasks (📋 3/5)',
+      title: 'Tiến độ việc con (3/5)',
       icon: <Layers className="w-4 h-4 text-neutral-900 dark:text-neutral-100" />,
-      desc: 'Hiển thị số lượng đầu việc nhỏ đã hoàn thành trên tổng số subtasks của nhiệm vụ.'
+      desc: 'Hiển thị số lượng đầu việc nhỏ đã hoàn thành trên tổng số việc con của nhiệm vụ.'
     },
     {
-      title: 'Chuyển giao bảo toàn lịch sử (🔄 Task Transfer)',
+      title: 'Chuyển tiếp bảo toàn lịch sử',
       icon: <ArrowRightLeft className="w-4 h-4 text-purple-500" />,
-      desc: 'Khi một task bị hoãn, tính năng chuyển giao sẽ đánh dấu task cũ là TRANSFERRED và tạo task mới ở ngày tương lai kèm ghi chú lý do.'
+      desc: 'Khi một nhiệm vụ bị hoãn, tính năng chuyển tiếp sẽ đánh dấu nhiệm vụ cũ là Đã chuyển tiếp và tạo nhiệm vụ mới ở ngày tương lai kèm ghi chú lý do.'
     },
     {
-      title: 'Thang điểm Quản lý thời gian sức khoẻ kỹ thuật số (⭐ 0.0 -> 10.0 Rating)',
+      title: 'Thang điểm Quản lý thời gian kỹ thuật số',
       icon: <Smartphone className="w-4 h-4 text-amber-500" />,
-      desc: 'Đánh giá mức độ kỷ luật giảm thời gian dùng thiết bị gây xao nhãng. Càng tuân thủ giới hạn, điểm rating càng tiến gần 10.0.'
+      desc: 'Đánh giá mức độ kỷ luật giảm thời gian dùng thiết bị gây xao nhãng. Càng tuân thủ giới hạn, điểm đánh giá càng tiến gần 10.0.'
     },
   ];
 
@@ -80,7 +80,7 @@ export const SystemLegendModal: React.FC<SystemLegendModalProps> = ({ isOpen, on
                 Bảng Chú giải Ký hiệu & Quy chuẩn hệ thống
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                System Legend & Guide — Hướng dẫn ý nghĩa các nhãn, màu sắc và thang đo
+                Hướng dẫn ý nghĩa các nhãn, màu sắc và thang đo
               </p>
             </div>
           </div>
@@ -95,9 +95,9 @@ export const SystemLegendModal: React.FC<SystemLegendModalProps> = ({ isOpen, on
         {/* Tab Selector */}
         <div className="flex items-center gap-1.5 pt-4 pb-3 border-b border-slate-100 dark:border-slate-800 overflow-x-auto text-xs">
           {[
-            { id: 'PRIORITY', label: 'Ưu tiên (Priority)' },
-            { id: 'DIFFICULTY', label: 'Độ khó (Difficulty 🔥)' },
-            { id: 'STATUS', label: 'Trạng thái (Status)' },
+            { id: 'PRIORITY', label: 'Mức độ ưu tiên' },
+            { id: 'DIFFICULTY', label: 'Mức độ khó' },
+            { id: 'STATUS', label: 'Trạng thái' },
             { id: 'SCHEDULE', label: 'Lịch cố định' },
             { id: 'CALENDAR', label: 'Ký hiệu trên Lịch' },
           ].map((tab) => (
@@ -121,7 +121,7 @@ export const SystemLegendModal: React.FC<SystemLegendModalProps> = ({ isOpen, on
           {activeTab === 'PRIORITY' && (
             <div className="space-y-3">
               <p className="text-slate-600 dark:text-slate-400 text-xs">
-                Mức độ ưu tiên giúp bạn lọc và nhận biết nhiệm vụ cần giải quyết trước. Trên Calendar và Task list, nhiệm vụ sẽ có <strong>viền màu dọc</strong> tương ứng:
+                Mức độ ưu tiên giúp bạn lọc và nhận biết nhiệm vụ cần giải quyết trước. Trên Lịch và danh sách nhiệm vụ, mỗi nhiệm vụ sẽ có <strong>viền màu dọc</strong> tương ứng:
               </p>
               <div className="space-y-2">
                 {(['URGENT', 'HIGH', 'MEDIUM', 'LOW'] as PriorityLevel[]).map((key) => {
@@ -145,7 +145,7 @@ export const SystemLegendModal: React.FC<SystemLegendModalProps> = ({ isOpen, on
                       </span>
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-slate-900 dark:text-slate-100">
-                          {key === 'URGENT' ? 'Khẩn cấp (Tối cao)' : key === 'HIGH' ? 'Ưu tiên cao' : key === 'MEDIUM' ? 'Trung bình' : 'Thấp'}
+                          {key === 'URGENT' ? 'Khẩn cấp' : key === 'HIGH' ? 'Ưu tiên cao' : key === 'MEDIUM' ? 'Trung bình' : 'Thấp'}
                         </div>
                         <div className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
                           {cfg.description}
@@ -162,7 +162,7 @@ export const SystemLegendModal: React.FC<SystemLegendModalProps> = ({ isOpen, on
           {activeTab === 'DIFFICULTY' && (
             <div className="space-y-3">
               <p className="text-slate-600 dark:text-slate-400 text-xs">
-                Độ khó (1 đến 5 ngọn lửa 🔥) đại diện cho khối lượng công việc & độ phức tạp. Khi hoàn thành task, bạn nhận được <strong>số điểm EXP tương ứng</strong> tích lũy vào Dashboard:
+                Độ khó (1 đến 5 ngọn lửa) thể hiện khối lượng công việc và độ phức tạp. Khi hoàn thành nhiệm vụ, bạn nhận được <strong>điểm thưởng tương ứng</strong> tích lũy vào hệ thống:
               </p>
               <div className="space-y-2">
                 {[1, 2, 3, 4, 5].map((lvl) => {
@@ -216,7 +216,6 @@ export const SystemLegendModal: React.FC<SystemLegendModalProps> = ({ isOpen, on
                         <span className={`font-semibold ${st.color} text-xs`}>
                           {st.label}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-400">({st.code})</span>
                       </div>
                       <div className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
                         {st.desc}
@@ -232,7 +231,7 @@ export const SystemLegendModal: React.FC<SystemLegendModalProps> = ({ isOpen, on
           {activeTab === 'SCHEDULE' && (
             <div className="space-y-3">
               <p className="text-slate-600 dark:text-slate-400 text-xs">
-                Lịch cố định (Fixed Schedules) lặp lại hàng tuần trên Calendar. Khi bạn tạo Task trùng giờ với lịch cố định, hệ thống sẽ tự động cảnh báo xung đột (Conflict Warning):
+                Lịch cố định lặp lại hàng tuần trên Lịch. Khi bạn tạo nhiệm vụ trùng giờ với lịch cố định, hệ thống sẽ tự động thông báo và hỗ trợ xếp lịch tối ưu:
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {categories.map((c) => (

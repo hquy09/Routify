@@ -29,6 +29,7 @@ interface TaskModalProps {
   initialTitle?: string;
   initialCourseNodeId?: number;
   initialFixedScheduleId?: number;
+  initialStatus?: TaskStatus;
 }
 
 const DOW_SHORT = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
@@ -45,6 +46,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   initialTitle,
   initialCourseNodeId,
   initialFixedScheduleId,
+  initialStatus,
 }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -148,7 +150,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       setStartDatetime('');
       setDifficulty(2);
       setPriority('MEDIUM');
-      setStatus('TODO');
+      setStatus(initialStatus || 'TODO');
       setSubtasks([]);
     }
   }, [
@@ -158,6 +160,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     initialTitle,
     initialCourseNodeId,
     initialFixedScheduleId,
+    initialStatus,
   ]);
 
   if (!isOpen) return null;
@@ -259,17 +262,11 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 <Sparkles className="w-4 h-4 animate-spin-slow" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">
-                    {taskToEdit ? 'Chỉnh sửa Nhiệm vụ' : 'Tạo Nhiệm vụ mới'}
-                  </h3>
-                  <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
-                    <Sparkles className="w-2.5 h-2.5" />
-                    Không gian rộng
-                  </span>
-                </div>
+                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">
+                  {taskToEdit ? 'Chỉnh sửa Nhiệm vụ' : 'Tạo Nhiệm vụ mới'}
+                </h3>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Quản lý đầy đủ thông tin, thời gian biểu và liên kết học tập / lịch trình
+                  Thiết lập thông tin và thời gian thực hiện
                 </p>
               </div>
             </div>
@@ -321,10 +318,10 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                       onChange={(e: any) => setPriority(e.target.value)}
                       className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     >
-                      <option value="LOW">Thấp (Low)</option>
-                      <option value="MEDIUM">Trung bình (Medium)</option>
-                      <option value="HIGH">Cao (High)</option>
-                      <option value="URGENT">Khẩn cấp (Urgent)</option>
+                      <option value="LOW">Thấp</option>
+                      <option value="MEDIUM">Trung bình</option>
+                      <option value="HIGH">Ưu tiên cao</option>
+                      <option value="URGENT">Khẩn cấp</option>
                     </select>
                   </div>
 
@@ -353,7 +350,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-slate-700 dark:text-slate-300 font-medium text-xs flex items-center gap-1">
                       <Flame className="w-3.5 h-3.5 text-amber-500" />
-                      <span>Độ khó thử thách</span>
+                      <span>Độ khó</span>
                     </label>
                     <span className="text-[11px] text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800">
                       +{difficulty} điểm thưởng
@@ -406,14 +403,14 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                   <div className="flex items-center justify-between">
                     <label className="text-slate-900 dark:text-slate-100 font-semibold text-xs flex items-center gap-1.5">
                       <Pin className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                      <span>Đính kèm vào Lịch cố định (Thời khóa biểu)</span>
+                      <span>Đính kèm Lịch cố định</span>
                     </label>
                     {selectedFixedSchedule && (
                       <button
                         type="button"
                         onClick={() => handleApplyFixedScheduleTime(selectedFixedSchedule.id)}
                         className="text-[11px] px-2 py-0.5 rounded font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-100/80 dark:bg-indigo-900/60 hover:bg-indigo-200 dark:hover:bg-indigo-800 border border-indigo-300 dark:border-indigo-700 transition flex items-center gap-1 shadow-2xs"
-                        title="Tự động điền khung giờ của lịch cố định này vào Task"
+                        title="Tự động điền khung giờ của lịch cố định này vào nhiệm vụ"
                       >
                         <Sparkles className="w-3 h-3 text-amber-500 animate-pulse" />
                         <span>Áp dụng giờ ({selectedFixedSchedule.start_time} - {selectedFixedSchedule.end_time})</span>
@@ -438,12 +435,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                       </option>
                     ))}
                   </select>
-                  {selectedFixedSchedule && (
-                    <p className="text-[10px] text-indigo-700 dark:text-indigo-300 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                      Task sẽ tự động xuất hiện bên trong khối lịch này trên Calendar và nhắc nhở đúng giờ.
-                    </p>
-                  )}
                 </div>
 
                 {/* 2. KHÓA HỌC & BÀI HỌC */}
@@ -518,7 +509,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                   <div>
                     <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1 text-xs flex items-center gap-1">
                       <Target className="w-3.5 h-3.5 text-amber-500" />
-                      <span>Mục tiêu (Goal)</span>
+                      <span>Mục tiêu</span>
                     </label>
                     <select
                       value={goalId || ''}
@@ -541,7 +532,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                   <div>
                     <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1 text-xs flex items-center gap-1">
                       <Layers className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Dự án (Project)</span>
+                      <span>Dự án</span>
                     </label>
                     <select
                       value={projectId || ''}
@@ -579,7 +570,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                   <div className="space-y-2">
                     <label className="block text-slate-700 dark:text-slate-300 font-medium text-xs flex items-center gap-1">
                       <CheckSquare className="w-3.5 h-3.5 text-emerald-500" />
-                      <span>Danh sách việc con (Subtasks - Tùy chọn)</span>
+                      <span>Danh sách việc con</span>
                     </label>
                     <div className="flex gap-2">
                       <input
@@ -632,7 +623,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
               <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                <span>Tip: Gán Task vào Lịch cố định để tự động hiển thị trong thời khóa biểu.</span>
+                <span>Mẹo: Gán nhiệm vụ vào Lịch cố định để tự động hiển thị trong thời khóa biểu.</span>
               </div>
               <div className="flex items-center gap-2">
                 <Button type="button" variant="outline" onClick={onClose}>

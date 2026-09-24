@@ -440,7 +440,7 @@ export const CourseBurnoutModal: React.FC<CourseBurnoutModalProps> = ({
                       <span className="text-2xl select-none animate-bounce">{tensionDetails.icon}</span>
                       <div>
                         <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                          <span>Mức chịu tải học tập & làm việc tối đa (Tension Capacity)</span>
+                          <span>Mức chịu tải học tập & làm việc tối đa</span>
                         </h4>
                         <p className={`text-xs font-semibold ${tensionDetails.textColor} transition-colors duration-200`}>
                           {tensionDetails.label}

@@ -257,7 +257,7 @@ export const ScreenTimePage: React.FC = () => {
         <div>
           <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <Smartphone className="w-5 h-5 text-neutral-900 dark:text-neutral-100" />
-            <span>Quản lý thời gian sức khoẻ kỹ thuật số (Digital Wellbeing)</span>
+            <span>Cân bằng kỹ thuật số</span>
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Quản lý và chỉnh sửa danh mục, kiểm soát thời gian sử dụng thiết bị và rèn luyện tính tự giác.
@@ -756,7 +756,7 @@ export const ScreenTimePage: React.FC = () => {
             <form onSubmit={handleCreateLog} className="space-y-3 text-xs">
               <div>
                 <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                  Danh mục (Category)
+                  Danh mục
                 </label>
                 <select
                   value={selectedCategory}

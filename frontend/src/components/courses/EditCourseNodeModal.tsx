@@ -483,7 +483,7 @@ export const EditCourseNodeModal: React.FC<EditCourseNodeModalProps> = ({
                   }`}
                 >
                   <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Nhiệm vụ (Task)</span>
+                  <span>Nhiệm vụ</span>
                 </button>
                 <button
                   type="button"
@@ -495,7 +495,7 @@ export const EditCourseNodeModal: React.FC<EditCourseNodeModalProps> = ({
                   }`}
                 >
                   <Calendar className="w-3.5 h-3.5 text-indigo-200" />
-                  <span>Sự kiện / Lịch học (Event)</span>
+                  <span>Sự kiện / Lịch học</span>
                 </button>
               </div>
               <Badge variant={scheduleMode === 'TASK' ? 'success' : 'outline'} className="text-[10px]">
@@ -584,10 +584,10 @@ export const EditCourseNodeModal: React.FC<EditCourseNodeModalProps> = ({
                       onChange={(e) => setTaskPriority(e.target.value)}
                       className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-slate-100 text-xs"
                     >
-                      <option value="LOW">Thấp (LOW)</option>
-                      <option value="MEDIUM">Trung bình (MEDIUM)</option>
-                      <option value="HIGH">Ưu tiên cao (HIGH)</option>
-                      <option value="URGENT">Khẩn cấp (URGENT)</option>
+                      <option value="LOW">Thấp</option>
+                      <option value="MEDIUM">Trung bình</option>
+                      <option value="HIGH">Ưu tiên cao</option>
+                      <option value="URGENT">Khẩn cấp</option>
                     </select>
                   </div>
 
@@ -658,7 +658,7 @@ export const EditCourseNodeModal: React.FC<EditCourseNodeModalProps> = ({
                 {/* Subtasks */}
                 <div>
                   <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                    Các bước thực hiện nhỏ (Subtasks):
+                    Các bước thực hiện:
                   </label>
                   <div className="space-y-1.5 max-h-28 overflow-y-auto pr-1">
                     {subtasks.map((st, i) => (
@@ -704,7 +704,7 @@ export const EditCourseNodeModal: React.FC<EditCourseNodeModalProps> = ({
                   className="w-full justify-center bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-md shadow-emerald-600/20"
                 >
                   <Sparkles className="w-3.5 h-3.5 mr-1.5 text-amber-300" />
-                  <span>{isCreatingTask ? 'Đang lên lịch...' : 'Lên lịch Task học bài này'}</span>
+                  <span>{isCreatingTask ? 'Đang lên lịch...' : 'Lên lịch học bài này'}</span>
                 </Button>
               </div>
             ) : (

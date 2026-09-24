@@ -37,10 +37,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems: { id: NavTab; label: string; icon: React.ReactNode }[] = [
     { id: 'dashboard', label: 'Tổng quan', icon: <BarChart3 className="w-4 h-4 shrink-0" /> },
     { id: 'calendar', label: 'Lịch biểu', icon: <CalendarIcon className="w-4 h-4 shrink-0" /> },
-    { id: 'tasks', label: 'Nhiệm vụ/ Mục tiêu', icon: <CheckSquare className="w-4 h-4 shrink-0" /> },
-    { id: 'courses', label: 'Khoá học', icon: <BookOpen className="w-4 h-4 shrink-0" /> },
-    { id: 'wellbeing', label: 'Quản lý sức khoẻ tinh thần', icon: <HeartPulse className="w-4 h-4 shrink-0 text-rose-500" /> },
-    { id: 'screentime', label: 'Quản lý thời gian sức khoẻ kỹ thuật số', icon: <Smartphone className="w-4 h-4 shrink-0" /> },
+    { id: 'tasks', label: 'Nhiệm vụ', icon: <CheckSquare className="w-4 h-4 shrink-0" /> },
+    { id: 'courses', label: 'Khóa học', icon: <BookOpen className="w-4 h-4 shrink-0" /> },
+    { id: 'wellbeing', label: 'Sức khỏe tinh thần', icon: <HeartPulse className="w-4 h-4 shrink-0 text-rose-500" /> },
+    { id: 'screentime', label: 'Cân bằng kỹ thuật số', icon: <Smartphone className="w-4 h-4 shrink-0" /> },
     { id: 'archive', label: 'Kho lưu trữ', icon: <Archive className="w-4 h-4 shrink-0" /> },
     { id: 'settings', label: 'Cài đặt', icon: <SettingsIcon className="w-4 h-4 shrink-0" /> },
   ];
@@ -62,7 +62,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div
               onClick={onToggleCollapse}
               className="w-8 h-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 flex items-center justify-center shrink-0 cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700 transition shadow-xs relative"
-              title={isCollapsed ? 'Routify (Beta) • Mở rộng sidebar' : 'Thu gọn sidebar'}
+              title={isCollapsed ? 'Routify • Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'}
             >
               <Star className="w-4 h-4 text-black stroke-black fill-white" strokeWidth={2.5} />
               {isCollapsed && (
@@ -88,7 +88,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               variant="ghost"
               size="icon"
               onClick={onToggleCollapse}
-              title="Thu gọn sidebar (Collapse)"
+              title="Thu gọn thanh điều hướng"
             >
               <PanelLeftClose className="w-4 h-4" />
             </Button>
@@ -102,7 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               variant="primary"
               size="icon"
               onClick={onOpenQuickAdd}
-              title="Tạo Task mới"
+              title="Tạo nhiệm vụ mới"
               className="w-10 h-10 mx-auto"
             >
               <Plus className="w-5 h-5" />
@@ -114,7 +114,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className="w-full justify-center"
             >
               <Plus className="w-4 h-4" />
-              <span>Tạo Task mới</span>
+              <span>Tạo nhiệm vụ mới</span>
             </Button>
           )}
         </div>
@@ -151,7 +151,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={onToggleCollapse}
               className="p-1.5 rounded-lg text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800 transition cursor-pointer"
-              title="Mở rộng sidebar (Expand)"
+              title="Mở rộng thanh điều hướng"
             >
               <PanelLeft className="w-4 h-4" />
             </button>
@@ -159,14 +159,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 onClick={onOpenLegend}
                 className="w-8 h-8 rounded-lg bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center justify-center font-bold text-xs transition cursor-pointer"
-                title="Bảng chú giải ký hiệu (?)"
+                title="Bảng chú giải ký hiệu"
               >
                 <HelpCircle className="w-4 h-4" />
               </button>
             )}
             <span
               className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"
-              title="Localhost DB Active"
+              title="Đang kết nối dữ liệu"
             />
           </div>
         ) : (
@@ -174,7 +174,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="bg-neutral-50 border border-neutral-200 dark:bg-neutral-850 dark:border-neutral-800 rounded-lg p-2.5 flex items-center justify-between text-[11px] text-neutral-600 dark:text-neutral-400">
               <span className="flex items-center gap-1.5 font-medium">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                Localhost DB
+                Dữ liệu nội bộ
               </span>
               <span className="text-neutral-400 dark:text-neutral-500 font-mono text-[10px]">v1.0</span>
             </div>
@@ -186,7 +186,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 title="Xem bảng chú giải ký hiệu và quy chuẩn"
               >
                 <HelpCircle className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400" />
-                <span>Chú giải ký hiệu (?)</span>
+                <span>Chú giải ký hiệu</span>
               </button>
             )}
           </div>

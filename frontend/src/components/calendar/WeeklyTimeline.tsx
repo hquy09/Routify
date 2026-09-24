@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   ChevronLeft, ChevronRight, Calendar as CalendarIcon,
   CheckCircle2, AlertCircle, Clock, Plus, Flame, BookOpen,
-  MapPin, Trash2, ExternalLink, Flag, Edit2, CheckSquare
+  MapPin, Trash2, ExternalLink, Flag, Edit2, CheckSquare,
+  Eye, EyeOff, Layers, Zap, CalendarDays
 } from 'lucide-react';
 import {
   CalendarWeeklyResponse, CalendarDayView, Task,
@@ -21,7 +22,7 @@ interface WeeklyTimelineProps {
   onSelectDay: (dateStr: string) => void;
   onTaskClick: (task: Task) => void;
   onToggleTask: (task: Task) => void;
-  onAddTaskForDay: (dateStr: string) => void;
+  onAddTaskForDay: (dateStr: string, hour?: number) => void;
   onQuickAddTask?: (dateStr: string, title: string) => Promise<void>;
   onDeleteTask?: (task: Task) => void;
   onEditSchedule?: (scheduleId: number) => void;
@@ -32,6 +33,116 @@ interface WeeklyTimelineProps {
   onDeleteNote: (noteId: number) => Promise<void>;
   hideHeader?: boolean;
 }
+
+const HOUR_HEIGHT = 60; // 60px per hour -> exactly 1 minute = 1 pixel
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+
+interface LayoutItem {
+  id: string | number;
+  startMin: number;
+  endMin: number;
+  top: number;
+  height: number;
+  [key: string]: any;
+}
+
+/**
+ * Greedy Column Clustering Algorithm for overlapping schedule & task intervals
+ */
+function computeOverlapLayout<T extends LayoutItem>(items: T[]): Array<T & { colIndex: number; totalCols: number; hasConflict: boolean }> {
+  if (items.length === 0) return [];
+  const sorted = [...items].sort((a, b) => a.startMin - b.startMin || (b.endMin - b.startMin) - (a.endMin - a.startMin));
+  const clusters: T[][] = [];
+  let currentCluster: T[] = [];
+  let clusterEnd = -1;
+
+  for (const item of sorted) {
+    if (currentCluster.length === 0) {
+      currentCluster.push(item);
+      clusterEnd = item.endMin;
+    } else if (item.startMin < clusterEnd) {
+      currentCluster.push(item);
+      clusterEnd = Math.max(clusterEnd, item.endMin);
+    } else {
+      clusters.push(currentCluster);
+      currentCluster = [item];
+      clusterEnd = item.endMin;
+    }
+  }
+  if (currentCluster.length > 0) {
+    clusters.push(currentCluster);
+  }
+
+  const results: Array<T & { colIndex: number; totalCols: number; hasConflict: boolean }> = [];
+  for (const cluster of clusters) {
+    const colEndTimes: number[] = [];
+    const hasConflict = cluster.length > 1;
+
+    const assigned = cluster.map((item) => {
+      let col = 0;
+      while (col < colEndTimes.length && colEndTimes[col] > item.startMin) {
+        col++;
+      }
+      colEndTimes[col] = item.endMin;
+      return { ...item, colIndex: col, hasConflict };
+    });
+
+    const totalCols = colEndTimes.length;
+    for (const a of assigned) {
+      results.push({ ...a, totalCols });
+    }
+  }
+  return results;
+}
+
+const parseTimeToMinutes = (timeStr: string) => {
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  return hours * 60 + (minutes || 0);
+};
+
+const getTaskTimeMinutes = (t: Task): { hasTime: boolean; startMin: number; endMin: number; timeLabel: string } => {
+  let sMin = -1;
+  let eMin = -1;
+  let hasTime = false;
+  let timeLabel = '';
+
+  if (t.start_datetime) {
+    const d = new Date(t.start_datetime);
+    const h = d.getHours();
+    const m = d.getMinutes();
+    sMin = h * 60 + m;
+    hasTime = true;
+  }
+
+  if (t.due_datetime) {
+    const d = new Date(t.due_datetime);
+    const h = d.getHours();
+    const m = d.getMinutes();
+    const dueMin = h * 60 + m;
+
+    if (h !== 0 || m !== 0 || sMin >= 0) {
+      hasTime = true;
+    }
+
+    const dueFormatted = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+
+    if (sMin >= 0) {
+      eMin = dueMin > sMin ? dueMin : sMin + 45;
+      const startFormatted = `${String(Math.floor(sMin / 60)).padStart(2, '0')}:${String(sMin % 60).padStart(2, '0')}`;
+      timeLabel = `${startFormatted} - ${dueFormatted}`;
+    } else if (hasTime) {
+      eMin = dueMin;
+      sMin = Math.max(0, dueMin - 45);
+      timeLabel = `Hạn: ${dueFormatted}`;
+    }
+  } else if (sMin >= 0) {
+    eMin = sMin + 45;
+    const startFormatted = `${String(Math.floor(sMin / 60)).padStart(2, '0')}:${String(sMin % 60).padStart(2, '0')}`;
+    timeLabel = `${startFormatted} - ${String(Math.floor(eMin / 60)).padStart(2, '0')}:${String(eMin % 60).padStart(2, '0')}`;
+  }
+
+  return { hasTime: hasTime && sMin >= 0 && eMin >= 0, startMin: sMin, endMin: eMin, timeLabel };
+};
 
 export const WeeklyTimeline: React.FC<WeeklyTimelineProps> = ({
   data,
@@ -52,6 +163,147 @@ export const WeeklyTimeline: React.FC<WeeklyTimelineProps> = ({
   onAddNote,
   onDeleteNote,
 }) => {
+  // State to track whether completed tasks are expanded per day
+  const [expandedCompletedDays, setExpandedCompletedDays] = useState<Record<string, boolean>>({});
+
+  const toggleDayCompleted = (dateStr: string) => {
+    setExpandedCompletedDays((prev) => ({
+      ...prev,
+      [dateStr]: !prev[dateStr],
+    }));
+  };
+
+  // Real-time clock updating every 30 seconds for the prominent live time needle
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const gridScrollRef = useRef<HTMLDivElement>(null);
+  const todayStr = toLocalDateString();
+  const isCurrentWeek = Boolean(data?.days?.some((d) => d.date === todayStr || d.is_today));
+
+  // Auto-scroll timeline to current hour on load
+  useEffect(() => {
+    if (gridScrollRef.current) {
+      if (isCurrentWeek) {
+        const currentH = new Date().getHours();
+        const targetScroll = Math.max(0, (currentH - 1) * HOUR_HEIGHT);
+        gridScrollRef.current.scrollTop = targetScroll;
+      } else {
+        // Scroll to 07:00 morning
+        gridScrollRef.current.scrollTop = 7 * HOUR_HEIGHT;
+      }
+    }
+  }, [data?.start_date, isCurrentWeek]);
+
+  /**
+   * Compute per-day data structures for Timeline Grid:
+   * (Hook is placed unconditionally at the top level to strictly follow React Rules of Hooks)
+   */
+  const computedDays = useMemo(() => {
+    if (!data || !data.days) return [];
+
+    return data.days.map((day) => {
+      const isPast = day.date < todayStr;
+      const isToday = day.is_today || day.date === todayStr;
+
+      // Group schedules
+      const scheduleItems = (day.fixed_schedules || []).map((occ, idx) => {
+        const sMin = parseTimeToMinutes(occ.start_time);
+        const eMin = parseTimeToMinutes(occ.end_time);
+        const durationMin = Math.max(eMin - sMin, 30);
+        return {
+          id: `sched-${idx}-${occ.fixed_schedule_id}`,
+          occ,
+          startMin: sMin,
+          endMin: Math.max(eMin, sMin + 30),
+          top: sMin,
+          height: durationMin,
+        };
+      });
+
+      const processedSchedules = computeOverlapLayout(scheduleItems);
+
+      // Tasks attached to or overlapping schedules vs standalone
+      const tasksInSchedules = new Set<number>();
+      const scheduleTaskMap: Record<number, Task[]> = {};
+
+      (day.fixed_schedules || []).forEach((occ) => {
+        scheduleTaskMap[occ.fixed_schedule_id] = [];
+        const occSMin = parseTimeToMinutes(occ.start_time);
+        const occEMin = parseTimeToMinutes(occ.end_time);
+
+        (day.tasks || []).forEach((t) => {
+          // Explicit attachment
+          if (t.scheduled_with_fixed_id === occ.fixed_schedule_id) {
+            scheduleTaskMap[occ.fixed_schedule_id].push(t);
+            tasksInSchedules.add(t.id);
+            return;
+          }
+
+          // Or overlapping timeframe if not explicitly attached elsewhere
+          if (!t.scheduled_with_fixed_id) {
+            const tTime = getTaskTimeMinutes(t);
+            if (tTime.hasTime && tTime.startMin < occEMin && tTime.endMin > occSMin) {
+              scheduleTaskMap[occ.fixed_schedule_id].push(t);
+              tasksInSchedules.add(t.id);
+            }
+          }
+        });
+      });
+
+      // Remaining tasks: split into standalone timed vs untimed
+      const standaloneTimed: Array<{
+        id: string;
+        task: Task;
+        startMin: number;
+        endMin: number;
+        top: number;
+        height: number;
+        timeLabel: string;
+      }> = [];
+      const untimedTasks: Task[] = [];
+
+      (day.tasks || []).forEach((t) => {
+        if (tasksInSchedules.has(t.id)) return;
+        const tTime = getTaskTimeMinutes(t);
+        if (tTime.hasTime) {
+          const duration = Math.max(tTime.endMin - tTime.startMin, 32);
+          standaloneTimed.push({
+            id: `task-${t.id}`,
+            task: t,
+            startMin: tTime.startMin,
+            endMin: tTime.endMin,
+            top: tTime.startMin,
+            height: duration,
+            timeLabel: tTime.timeLabel,
+          });
+        } else {
+          untimedTasks.push(t);
+        }
+      });
+
+      const processedTimedTasks = computeOverlapLayout(standaloneTimed);
+
+      return {
+        day,
+        isPast,
+        isToday,
+        processedSchedules,
+        scheduleTaskMap,
+        processedTimedTasks,
+        untimedTasks,
+      };
+    });
+  }, [data, todayStr]);
+
+  const hasAnyUntimedTasks = computedDays.some((d) => d.untimedTasks.length > 0);
+
+  // If data is still loading
   if (!data) {
     return (
       <div className="p-12 text-center text-slate-500 animate-pulse">
@@ -66,480 +318,673 @@ export const WeeklyTimeline: React.FC<WeeklyTimelineProps> = ({
     return `${parts[2]}/${parts[1]}`;
   };
 
+  // Time needle calculation
+  const currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+  const timeNeedleTop = currentMinutes; // 1 min = 1 px!
+  const currentTimeLabel = `${String(currentTime.getHours()).padStart(2, '0')}:${String(
+    currentTime.getMinutes()
+  ).padStart(2, '0')}`;
+
+  /**
+   * Reusable Task Card renderer supporting all badges:
+   * - Transfer badge (🔄)
+   * - Difficulty badge (🔥 +{points}đ)
+   * - Priority badge (🚩 {level})
+   * - Deadline clock (⏰ {time})
+   * - Attached course (📚 {course})
+   * - Attached schedule (📌 {schedule})
+   * - Overlaid indicator (⚡ Đè lên lịch)
+   * - Subtask progress
+   */
+  const renderTaskCard = (t: Task, isOverlaid: boolean = false, compact: boolean = false) => {
+    const isDone = t.status === 'COMPLETED';
+    const pCfg = PRIORITY_CONFIG[(t.priority as PriorityLevel)] || PRIORITY_CONFIG.MEDIUM;
+    const dCfg = DIFFICULTY_CONFIG[t.difficulty] || DIFFICULTY_CONFIG[2];
+    const deadline = getDeadlineInfo(t.due_datetime, t.status);
+    const isTransferred = Boolean(
+      t.transferred_from_id ||
+      t.transferred_to_id ||
+      t.transferred_from_title ||
+      (t.status as string) === 'TRANSFERRED'
+    );
+
+    const priorityBorder = isDone
+      ? 'border-l-slate-300 dark:border-l-slate-700'
+      : t.priority === 'URGENT'
+      ? 'border-l-rose-500'
+      : t.priority === 'HIGH'
+      ? 'border-l-amber-500'
+      : t.priority === 'MEDIUM'
+      ? 'border-l-blue-400 dark:border-l-blue-500'
+      : 'border-l-slate-300 dark:border-l-slate-600';
+
+    return (
+      <div
+        key={t.id}
+        className={`rounded-lg p-1.5 border border-l-[3.5px] ${priorityBorder} text-xs transition-all cursor-pointer group select-none shadow-xs hover:shadow-md ${
+          isDone
+            ? 'bg-slate-50/90 border-slate-200 text-slate-400 dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-500'
+            : isOverlaid
+            ? 'bg-white/95 dark:bg-slate-900/95 border-slate-200/90 dark:border-slate-700 backdrop-blur-xs text-slate-900 dark:text-slate-100 ring-1 ring-black/5 dark:ring-white/5'
+            : 'bg-white border-slate-200 hover:border-neutral-900 text-slate-900 dark:bg-slate-800/90 dark:border-slate-700 dark:hover:border-neutral-100 dark:text-slate-200'
+        }`}
+        onClick={() => onTaskClick(t)}
+      >
+        <div className="flex items-start gap-1.5">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleTask(t);
+            }}
+            className="mt-0.5 text-slate-400 hover:text-emerald-500 shrink-0"
+            title={isDone ? 'Đánh dấu chưa xong' : 'Đánh dấu đã xong'}
+          >
+            {isDone ? (
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+            ) : (
+              <div className="w-3.5 h-3.5 rounded border border-slate-300 dark:border-slate-500 hover:border-emerald-500" />
+            )}
+          </button>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1">
+              {isOverlaid && (
+                <span
+                  title="Nhiệm vụ đè lên khung giờ lịch cố định này"
+                  className="inline-flex items-center text-[8px] font-bold px-1 rounded bg-indigo-50 text-indigo-700 dark:bg-indigo-950/70 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 shrink-0"
+                >
+                  ⚡ Đè lên
+                </span>
+              )}
+              <p
+                className={`font-semibold truncate text-[11px] leading-tight ${
+                  isDone ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-slate-100'
+                }`}
+              >
+                {t.title}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-1 mt-1 text-[9px] flex-wrap">
+              {/* Ký hiệu chuyển tiếp (Transferred symbol) */}
+              {isTransferred && (
+                <span
+                  title={
+                    t.transferred_from_date
+                      ? `Nhiệm vụ chuyển tiếp từ ngày ${t.transferred_from_date}`
+                      : 'Nhiệm vụ được chuyển tiếp'
+                  }
+                  className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded font-bold border text-[8.5px] bg-purple-50 text-purple-700 dark:bg-purple-950/70 dark:text-purple-300 border-purple-200 dark:border-purple-800"
+                >
+                  <span>🔄</span>
+                  <span>Chuyển tiếp</span>
+                </span>
+              )}
+
+              {/* Priority badge */}
+              <span
+                title={`Mức ưu tiên: ${pCfg.label} - ${pCfg.description}`}
+                className={`inline-flex items-center gap-0.5 px-1 py-0.2 rounded font-bold border text-[8.5px] ${pCfg.badgeBg} ${pCfg.textColor} ${pCfg.borderColor}`}
+              >
+                <Flag className="w-2 h-2" />
+                <span>{pCfg.shortLabel}</span>
+              </span>
+
+              {/* Difficulty badge */}
+              <span
+                title={`Độ khó: ${dCfg.label} (+${dCfg.points} điểm)`}
+                className={`inline-flex items-center gap-0.5 px-1 py-0.2 rounded font-bold border text-[8.5px] ${dCfg.bg} ${dCfg.color} ${dCfg.border}`}
+              >
+                <Flame className="w-2 h-2 fill-current" />
+                <span>+{dCfg.points}đ</span>
+              </span>
+
+              {/* Subtask count */}
+              {t.subtasks_count > 0 && (
+                <span
+                  title={`Tiến độ subtasks: ${t.subtasks_completed_count}/${t.subtasks_count}`}
+                  className="font-mono text-[8.5px] text-slate-600 dark:text-slate-400 font-semibold px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800"
+                >
+                  {t.subtasks_completed_count}/{t.subtasks_count}
+                </span>
+              )}
+
+              {/* Attached Course */}
+              {t.course_title && (
+                <span
+                  className="text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/80 px-1 py-0.2 rounded text-[8.5px] truncate max-w-[80px] font-medium"
+                  title={`Khóa học: ${t.course_title}`}
+                >
+                  📚 {t.course_title}
+                </span>
+              )}
+
+              {/* Attached Fixed Schedule (if not already inside schedule container) */}
+              {!isOverlaid && t.scheduled_with_fixed_title && (
+                <span
+                  className="text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800/80 px-1 py-0.2 rounded text-[8.5px] truncate max-w-[85px] font-medium"
+                  title={`Lịch cố định: ${t.scheduled_with_fixed_title}`}
+                >
+                  📌 {t.scheduled_with_fixed_title}
+                </span>
+              )}
+
+              {/* Deadline clock */}
+              {deadline.hasDeadline && (
+                <span
+                  title={`Hạn chót: ${deadline.text}`}
+                  className={`inline-flex items-center gap-0.5 px-1 py-0.2 rounded font-bold border text-[8.5px] ${deadline.badgeClass}`}
+                >
+                  <Clock className="w-2 h-2 shrink-0" />
+                  <span>{deadline.shortText}</span>
+                </span>
+              )}
+            </div>
+          </div>
+
+          {onDeleteTask && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteTask(t);
+              }}
+              className="text-slate-400 hover:text-rose-500 transition p-0.5 rounded opacity-0 group-hover:opacity-100 shrink-0 self-start"
+              title="Xóa nhiệm vụ này"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col flex-1 min-h-0 h-full">
-      {/* Week Header & Navigation */}
+      {/* 1. Optional Week Header Toolbar */}
       {!hideHeader && (
-        <div className="flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-xs">
-        <div className="flex items-center gap-2">
-          <CalendarIcon className="w-5 h-5 text-neutral-900 dark:text-neutral-100" />
-          <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">
-            Tuần {data.week_number} / {data.year}
+        <div className="flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-xs mb-2">
+          <div className="flex items-center gap-2">
+            <CalendarIcon className="w-5 h-5 text-neutral-900 dark:text-neutral-100" />
+            <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+              Tuần {data.week_number} / {data.year}
+            </span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              ({formatDateLabel(data.start_date)} - {formatDateLabel(data.end_date)})
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onPrevWeek}
+              title="Tuần trước"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onToday}
+            >
+              Tuần hiện tại
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onNextWeek}
+              title="Tuần sau"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={onAddSchedule}
+              className="ml-1"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Thêm Lịch cố định</span>
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Sleek Week Title & Live Needle Status Bar */}
+      <div className="flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 mb-2 shadow-2xs shrink-0 flex-wrap gap-2">
+        {/* Left: Week title & Live needle status */}
+        <div className="flex items-center gap-2.5 text-xs flex-wrap">
+          <span className="font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+            <CalendarDays className="w-4 h-4 text-neutral-900 dark:text-neutral-100" />
+            <span>Tuần {data.week_number} / {data.year}</span>
+            <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400 font-mono">
+              ({formatDateLabel(data.start_date)} - {formatDateLabel(data.end_date)})
+            </span>
           </span>
-          <span className="text-xs text-slate-500 dark:text-slate-400">
-            ({formatDateLabel(data.start_date)} - {formatDateLabel(data.end_date)})
-          </span>
+
+          {isCurrentWeek && (
+            <span className="inline-flex items-center gap-1 font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 px-2 py-0.5 rounded-md border border-rose-200 dark:border-rose-900/60 text-[11px]">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+              <span>Kim giờ trực tiếp:</span>
+              <strong className="font-mono text-rose-700 dark:text-rose-300">{currentTimeLabel}</strong>
+            </span>
+          )}
         </div>
 
-        <div className="flex items-center gap-1.5">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={onPrevWeek}
-            title="Tuần trước"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onToday}
-          >
-            Tuần hiện tại
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={onNextWeek}
-            title="Tuần sau"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
+        {/* Right: Visual Legend & Action */}
+        <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
           <Button
             variant="primary"
             size="sm"
             onClick={onAddSchedule}
-            className="ml-1"
+            className="font-bold text-xs h-7 px-2.5 shadow-2xs"
+            title="Thêm Lịch cố định mới"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Thêm Lịch cố định</span>
+            <span>Tạo Lịch cố định</span>
           </Button>
+
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded bg-indigo-500" />
+            <span>Lịch cố định</span>
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded bg-amber-500" />
+            <span>Nhiệm vụ đè lên</span>
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded bg-emerald-500" />
+            <span>Nhiệm vụ độc lập</span>
+          </span>
         </div>
       </div>
-      )}
 
-      {/* 7-Day Grid Columns */}
-      <div className="flex-1 min-h-0 overflow-x-auto pb-1 flex flex-col">
-        <div className="grid grid-cols-7 gap-2.5 min-w-[950px] flex-1 min-h-0 h-full">
-          {data.days.map((day) => {
-            const todayStr = toLocalDateString();
-            const isPast = day.date < todayStr;
-            const isToday = day.is_today;
+      {/* 3. 24H TIMELINE GRID VIEW */}
+      <div className="flex-1 min-h-0 flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+        {/* A. Sticky 7-Day Header Strip */}
+        <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90 shrink-0 min-w-[950px] pr-2">
+          {/* Left 54px spacer for time labels column */}
+          <div className="w-[54px] shrink-0 border-r border-slate-200 dark:border-slate-800 p-2 flex items-center justify-center text-[10px] font-bold text-slate-400">
+            <Clock className="w-3.5 h-3.5" />
+          </div>
 
-            return (
-              <div
-                key={day.date}
-                className={`flex flex-col rounded-xl border p-2 min-w-[130px] h-full min-h-0 transition-all shadow-xs ${
-                  isToday
-                    ? 'bg-white dark:bg-slate-900 border-neutral-900 dark:border-neutral-100 ring-2 ring-neutral-900/10 dark:ring-white/10 shadow-md'
-                    : isPast
-                    ? 'bg-slate-50/70 dark:bg-slate-900/35 border-slate-200 dark:border-slate-800/60 opacity-80 hover:opacity-100'
-                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                }`}
-              >
-                {/* Day Header - Clickable for Day View */}
+          {/* 7 Column Headers */}
+          <div className="flex-1 grid grid-cols-7 divide-x divide-slate-200 dark:divide-slate-800">
+            {computedDays.map(({ day, isPast, isToday }) => {
+              const pendingCount = (day.tasks || []).filter((t) => t.status !== 'COMPLETED').length;
+              const completedCount = (day.tasks || []).filter((t) => t.status === 'COMPLETED').length;
+              const isCompletedExpanded = !!expandedCompletedDays[day.date];
+
+              return (
                 <div
-                  onClick={() => onSelectDay(day.date)}
-                  className="shrink-0 pb-1.5 border-b border-slate-100 dark:border-slate-800 cursor-pointer group hover:bg-slate-50 dark:hover:bg-slate-800/50 p-1 -m-1 rounded-lg transition"
-                  title="Nhấn để xem Lịch Ngày chi tiết (Day View)"
+                  key={day.date}
+                  className={`p-2 transition-colors ${
+                    isToday
+                      ? 'bg-neutral-900/5 dark:bg-white/5 font-extrabold'
+                      : isPast
+                      ? 'opacity-80'
+                      : ''
+                  }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <span
-                        className={`text-xs font-bold transition group-hover:text-neutral-900 dark:group-hover:text-neutral-100 ${
-                          isToday
-                            ? 'text-neutral-900 dark:text-neutral-100 font-extrabold'
-                            : isPast
-                            ? 'text-slate-400 dark:text-slate-400 font-medium'
-                            : 'text-slate-900 dark:text-slate-100'
-                        }`}
-                      >
+                  <div className="flex items-center justify-between gap-1">
+                    {/* Day Name & Date (Clickable to Day View) */}
+                    <button
+                      type="button"
+                      onClick={() => onSelectDay(day.date)}
+                      className="flex items-center gap-1 text-xs font-bold text-left group hover:text-neutral-900 dark:hover:text-white transition cursor-pointer truncate"
+                      title="Xem Lịch Ngày chi tiết"
+                    >
+                      {isToday && (
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                      )}
+                      <span className={isToday ? 'text-neutral-900 dark:text-neutral-100 font-extrabold' : 'text-slate-800 dark:text-slate-200'}>
                         {day.day_name.slice(0, 3)} {formatDateLabel(day.date)}
                       </span>
-                      <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition" />
+                      <ExternalLink className="w-2.5 h-2.5 text-slate-400 opacity-0 group-hover:opacity-100 transition shrink-0" />
+                    </button>
+
+                    {/* Header Actions: Toggle Completed & Quick Add Task */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {completedCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => toggleDayCompleted(day.date)}
+                          className={`p-0.5 rounded text-[9px] flex items-center transition cursor-pointer ${
+                            isCompletedExpanded
+                              ? 'text-emerald-700 bg-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300'
+                              : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                          }`}
+                          title={isCompletedExpanded ? 'Ẩn các việc đã hoàn thành' : `Hiện ${completedCount} việc đã xong`}
+                        >
+                          {isCompletedExpanded ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => onAddTaskForDay(day.date)}
+                        className="w-4 h-4 rounded flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
+                        title="Thêm nhiệm vụ cho ngày này"
+                      >
+                        +
+                      </button>
                     </div>
+                  </div>
 
-                    {isToday && (
-                      <span className="text-[9px] bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 font-bold px-1.5 py-0.5 rounded flex items-center gap-1 shadow-xs">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                        Hôm nay
+                  {/* Single-Row Status Badges */}
+                  <div className="flex items-center gap-1 mt-1 flex-wrap">
+                    {day.stats && day.stats.delayed > 0 && (
+                      <span
+                        title={`Chậm trễ: ${day.stats.delayed} việc`}
+                        className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[8.5px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                        <span>{day.stats.delayed}</span>
                       </span>
                     )}
-                    {isPast && (
-                      <span className="text-[9px] bg-slate-200/80 text-slate-600 dark:bg-slate-800/90 dark:text-slate-400 font-medium px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700/50">
-                        Đã xong
+                    {day.stats && day.stats.partial > 0 && (
+                      <span
+                        title={`Hoàn thành một phần: ${day.stats.partial} việc`}
+                        className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[8.5px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60"
+                      >
+                        <span className="text-[8px] leading-none">🌓</span>
+                        <span>{day.stats.partial}</span>
+                      </span>
+                    )}
+                    {day.stats && day.stats.todo > 0 && (
+                      <span
+                        title={`Cần làm: ${day.stats.todo} việc`}
+                        className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[8.5px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
+                        <span>{day.stats.todo}</span>
+                      </span>
+                    )}
+                    {day.stats && day.stats.completed > 0 && (
+                      <span
+                        title={`Đã xong: ${day.stats.completed} việc`}
+                        className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[8.5px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/60"
+                      >
+                        <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span>{day.stats.completed}</span>
                       </span>
                     )}
                   </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
-                {/* Day Summary Counters */}
-                <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span title="Completed" className="text-emerald-700 dark:text-emerald-400 font-semibold">
-                      ✅ {day.stats.completed}
-                    </span>
-                    <span title="Partial" className="text-amber-700 dark:text-amber-400 font-semibold">
-                      🟡 {day.stats.partial}
-                    </span>
-                    <span title="Delayed" className="text-rose-700 dark:text-rose-400 font-semibold">
-                      🔴 {day.stats.delayed}
-                    </span>
-                    <span title="Todo" className="text-slate-600 dark:text-slate-300 font-medium">
-                      ⚪ {day.stats.todo}
-                    </span>
+        {/* B. All-Day / Untimed Tasks Strip (If any untimed tasks exist in this week) */}
+        {hasAnyUntimedTasks && (
+          <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 shrink-0 min-w-[950px] pr-2">
+            <div className="w-[54px] shrink-0 border-r border-slate-200 dark:border-slate-800 p-1 flex items-center justify-center text-[9px] font-bold text-slate-400 uppercase text-center leading-tight">
+              Chưa giờ
+            </div>
+            <div className="flex-1 grid grid-cols-7 divide-x divide-slate-200 dark:divide-slate-800 p-1 gap-1">
+              {computedDays.map(({ day, untimedTasks }) => {
+                const pendingUntimed = untimedTasks.filter((t) => t.status !== 'COMPLETED');
+                const completedUntimed = untimedTasks.filter((t) => t.status === 'COMPLETED');
+                const isCompletedExpanded = !!expandedCompletedDays[day.date];
+                const displayed = isCompletedExpanded ? untimedTasks : pendingUntimed;
+
+                return (
+                  <div key={day.date} className="space-y-1 min-h-[26px]">
+                    {displayed.map((t) => renderTaskCard(t, false, true))}
+                    {pendingUntimed.length === 0 && completedUntimed.length > 0 && !isCompletedExpanded && (
+                      <div
+                        onClick={() => toggleDayCompleted(day.date)}
+                        className="text-[9px] text-emerald-600 dark:text-emerald-400 italic text-center cursor-pointer hover:underline py-0.5"
+                      >
+                        ✓ {completedUntimed.length} việc đã xong
+                      </div>
+                    )}
                   </div>
-                  <span
-                    title="Thời gian rảnh ước tính"
-                    className="text-[10px] text-neutral-700 dark:text-neutral-300 font-mono font-medium"
-                  >
-                    Rảnh: {day.free_time_hours}h
-                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* C. 24-Hour Scrollable Canvas with Time Needle */}
+        <div
+          ref={gridScrollRef}
+          className="flex-1 min-h-0 overflow-y-auto overflow-x-auto relative select-none scrollbar-thin"
+        >
+          <div
+            className="relative flex min-w-[950px]"
+            style={{ height: `${24 * HOUR_HEIGHT}px` }}
+          >
+            {/* Hour Grid Lines Background */}
+            {HOURS.map((hour) => (
+              <div
+                key={hour}
+                className="absolute left-0 right-0 flex items-start pointer-events-none"
+                style={{ top: `${hour * HOUR_HEIGHT}px`, height: `${HOUR_HEIGHT}px` }}
+              >
+                {/* Left Hour Label */}
+                <span className="w-[54px] text-right pr-2 -mt-2 font-mono text-[10px] font-bold text-slate-400 dark:text-slate-500 shrink-0 select-none">
+                  {String(hour).padStart(2, '0')}:00
+                </span>
+
+                {/* Horizontal Hour line */}
+                <div className="flex-1 border-t border-slate-100 dark:border-slate-800/80 h-full relative">
+                  {/* 30-min dashed guide */}
+                  <div
+                    className="absolute left-0 right-0 border-t border-dashed border-slate-100/60 dark:border-slate-800/40"
+                    style={{ top: `${HOUR_HEIGHT / 2}px` }}
+                  />
                 </div>
               </div>
+            ))}
 
-              {/* Day Content: 2 Compartments (Upper: Fixed Schedules & Notes | Lower: Tasks separated below) */}
-              <div className="flex-1 min-h-0 flex flex-col pt-1.5 gap-1.5">
-                {/* 1. TOP COMPARTMENT: Lịch Cố Định & Ghi Chú */}
-                <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-                  <div className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase px-1 pb-1 flex items-center justify-between shrink-0">
-                    <span className="flex items-center gap-1 font-bold">
-                      <span>📅 Lịch cố định</span>
-                      <span className="font-mono text-[9px] px-1 rounded bg-slate-100 dark:bg-slate-800">
-                        {day.fixed_schedules.length}
-                      </span>
-                    </span>
-                  </div>
+            {/* Left Column Spacer */}
+            <div className="w-[54px] shrink-0 border-r border-slate-200/80 dark:border-slate-800/80 pointer-events-none" />
 
-                  <div className="flex-1 min-h-0 overflow-y-auto pr-0.5 space-y-1.5 scrollbar-thin">
-                    {/* Notes if any */}
-                    {day.notes.map((note) => (
+            {/* 7 Column Canvas for Events */}
+            <div className="flex-1 grid grid-cols-7 divide-x divide-slate-200/80 dark:border-slate-800/80 relative h-full">
+              {computedDays.map(({ day, isPast, isToday, processedSchedules, scheduleTaskMap, processedTimedTasks }) => {
+                const isCompletedExpanded = !!expandedCompletedDays[day.date];
+
+                return (
+                  <div
+                    key={day.date}
+                    className={`relative h-full ${
+                      isToday
+                        ? 'bg-rose-500/[0.02] dark:bg-rose-500/[0.03]'
+                        : isPast
+                        ? 'bg-slate-50/30 dark:bg-slate-950/20'
+                        : ''
+                    }`}
+                  >
+                    {/* Clickable Hour Slots to add task */}
+                    {HOURS.map((hour) => (
                       <div
-                        key={note.id}
-                        className="p-1.5 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-900 dark:bg-amber-950/20 dark:border-amber-900/40 dark:text-amber-300/90 flex items-start justify-between group shadow-2xs"
+                        key={hour}
+                        onClick={() => onAddTaskForDay(day.date, hour)}
+                        className="absolute left-0 right-0 cursor-pointer group/slot hover:bg-slate-100/40 dark:hover:bg-slate-800/20 transition-colors"
+                        style={{ top: `${hour * HOUR_HEIGHT}px`, height: `${HOUR_HEIGHT}px` }}
+                        title={`Nhấn để thêm nhiệm vụ vào lúc ${String(hour).padStart(2, '0')}:00 ngày ${day.day_name}`}
                       >
-                        <span className="leading-tight">{note.content}</span>
-                        <button
-                          onClick={() => onDeleteNote(note.id)}
-                          className="opacity-0 group-hover:opacity-100 text-amber-600 hover:text-rose-600 dark:text-amber-500 dark:hover:text-rose-400 transition ml-1"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
+                        <span className="opacity-0 group-hover/slot:opacity-100 text-[9px] text-slate-400 pl-1.5 pt-0.5 block font-medium select-none">
+                          + {String(hour).padStart(2, '0')}:00
+                        </span>
                       </div>
                     ))}
 
-                    {/* Fixed Schedules list */}
-                    {day.fixed_schedules.length === 0 ? (
-                      <div className="py-6 text-center text-[10px] text-slate-400 dark:text-slate-600 italic">
-                        Không có lịch cố định
-                      </div>
-                    ) : (
-                      day.fixed_schedules.map((occ, idx) => {
-                      const attachedTasks = day.tasks.filter(
-                        (t) => t.scheduled_with_fixed_id === occ.fixed_schedule_id
+                    {/* 1. FIXED SCHEDULES with OVERLAID TASKS (THỂ HIỆN ĐÈ LÊN LỊCH) */}
+                    {processedSchedules.map((item) => {
+                      const occ = item.occ;
+                      const attachedTasks = scheduleTaskMap[occ.fixed_schedule_id] || [];
+                      const pendingAttached = attachedTasks.filter((t) => t.status !== 'COMPLETED');
+                      const completedAttached = attachedTasks.filter((t) => t.status === 'COMPLETED');
+                      const displayedAttached = isCompletedExpanded ? attachedTasks : pendingAttached;
+
+                      const colWidthPct = 100 / item.totalCols;
+                      const colLeftPct = item.colIndex * colWidthPct;
+
+                      // Ensure adequate height if multiple tasks are overlaid
+                      const cardMinHeight = Math.max(
+                        item.height,
+                        displayedAttached.length > 0 ? 46 + displayedAttached.length * 44 : 36
                       );
+
                       return (
                         <div
-                          key={idx}
+                          key={item.id}
                           onClick={() => onEditSchedule && onEditSchedule(occ.fixed_schedule_id)}
-                          className="rounded-lg p-2 border transition relative overflow-hidden group shadow-xs cursor-pointer hover:shadow-md"
+                          className="absolute rounded-xl p-2 border shadow-xs transition-all overflow-hidden z-10 group hover:z-30 hover:shadow-md cursor-pointer"
                           style={{
+                            top: `${item.top}px`,
+                            height: `${cardMinHeight}px`,
+                            left: `calc(${colLeftPct}% + 1px)`,
+                            width: `calc(${colWidthPct}% - 2px)`,
                             backgroundColor: `${occ.color}15`,
-                            borderColor: `${occ.color}40`,
+                            borderColor: `${occ.color}60`,
+                            borderLeftWidth: '3.5px',
+                            borderLeftColor: occ.color,
                           }}
                         >
-                          <div
-                            className="absolute left-0 top-0 bottom-0 w-1"
-                            style={{ backgroundColor: occ.color }}
-                          />
-                          <div className="flex items-center justify-between text-[11px] font-bold text-slate-800 dark:text-slate-100">
-                            <span className="truncate pr-1 flex items-center gap-1">
-                              <span className="shrink-0">{occ.icon || '📌'}</span>
+                          {/* Schedule Header: Title & Time */}
+                          <div className="flex items-start justify-between gap-1 text-[11px] font-bold text-slate-800 dark:text-slate-100 leading-tight">
+                            <span className="truncate flex items-center gap-1 min-w-0">
+                              <span className="text-xs shrink-0">{occ.icon || '📌'}</span>
                               <span className="truncate">{occ.title}</span>
                             </span>
-                            <div className="flex items-center gap-1 shrink-0">
-                              <span
-                                className="font-mono text-[10px] px-1 py-0.5 rounded font-semibold"
-                                style={{
-                                  color: occ.color,
-                                  backgroundColor: `${occ.color}25`,
-                                }}
-                              >
-                                {occ.start_time} - {occ.end_time}
-                              </span>
-                              {onAddTaskToSchedule && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onAddTaskToSchedule(occ.fixed_schedule_id, day.date, occ.start_time, occ.end_time);
-                                  }}
-                                  className="text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition p-0.5 rounded opacity-0 group-hover:opacity-100"
-                                  title="Thêm nhiệm vụ vào lịch này"
-                                >
-                                  <Plus className="w-3 h-3" />
-                                </button>
-                              )}
-                              {onEditSchedule && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onEditSchedule(occ.fixed_schedule_id);
-                                  }}
-                                  className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition p-0.5 rounded opacity-0 group-hover:opacity-100"
-                                  title="Chỉnh sửa lịch cố định"
-                                >
-                                  <Edit2 className="w-3 h-3" />
-                                </button>
-                              )}
-                              {onDeleteSchedule && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onDeleteSchedule(occ.fixed_schedule_id, occ.title);
-                                  }}
-                                  className="text-slate-400 hover:text-rose-500 transition p-0.5 rounded opacity-0 group-hover:opacity-100"
-                                  title="Xóa lịch cố định này"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
-                              )}
-                            </div>
+                            <span
+                              className="font-mono text-[9px] px-1 py-0.2 rounded font-semibold shrink-0"
+                              style={{
+                                color: occ.color,
+                                backgroundColor: `${occ.color}25`,
+                              }}
+                            >
+                              {occ.start_time} - {occ.end_time}
+                            </span>
                           </div>
+
+                          {/* Schedule details: Course, location */}
                           {occ.course_title && (
                             <div className="flex items-center gap-1 mt-1">
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 font-semibold text-[9px] truncate max-w-full">
+                              <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 font-semibold text-[8.5px] truncate max-w-full">
                                 <span>📚 {occ.course_title}</span>
-                                {occ.course_node_title && (
-                                  <span className="opacity-75 font-normal truncate"> • {occ.course_node_title}</span>
-                                )}
                               </span>
                             </div>
                           )}
+
                           {occ.location && (
-                            <div className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400 mt-1">
-                              <MapPin className="w-3 h-3 text-slate-400" />
+                            <div className="flex items-center gap-1 text-[9px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                              <MapPin className="w-2.5 h-2.5 text-slate-400 shrink-0" />
                               <span className="truncate">{occ.location}</span>
                             </div>
                           )}
-                          {occ.description && (
-                            <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1 italic">
-                              {occ.description}
-                            </div>
-                          )}
-                          <div className="mt-1 text-[9px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
-                            <span className="uppercase tracking-wider font-medium">{occ.category}</span>
-                            {occ.is_overridden && (
-                              <span className="text-amber-500 font-semibold">[Đổi giờ]</span>
-                            )}
-                          </div>
-                          {/* Attached Tasks list inside Fixed Schedule */}
+
+                          {/* OVERLAID TASKS SECTION ("THỂ HIỆN ĐÈ LÊN LỊCH") */}
                           {attachedTasks.length > 0 && (
-                            <div className="mt-1.5 pt-1 border-t border-slate-200/50 dark:border-slate-700/50 space-y-1">
+                            <div className="mt-1.5 pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60 space-y-1">
                               <div className="flex items-center justify-between text-[9px] font-bold text-indigo-700 dark:text-indigo-300">
-                                <span className="flex items-center gap-1">
-                                  <CheckSquare className="w-2.5 h-2.5 text-emerald-500" />
-                                  <span>Nhiệm vụ ({attachedTasks.filter((t) => t.status === 'COMPLETED').length}/{attachedTasks.length})</span>
+                                <span className="flex items-center gap-0.5">
+                                  <Zap className="w-2.5 h-2.5 text-amber-500 fill-amber-500 shrink-0" />
+                                  <span>Nhiệm vụ ({completedAttached.length}/{attachedTasks.length})</span>
                                 </span>
-                              </div>
-                              <div className="space-y-1 max-h-24 overflow-y-auto pr-0.5">
-                                {attachedTasks.map((t) => (
-                                  <div
-                                    key={t.id}
+                                {completedAttached.length > 0 && (
+                                  <button
+                                    type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      onTaskClick(t);
+                                      toggleDayCompleted(day.date);
                                     }}
-                                    className="flex items-center gap-1 p-1 rounded bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-700/80 text-[10px] hover:border-emerald-400 transition cursor-pointer"
+                                    className="text-[8px] text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 underline"
                                   >
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        onToggleTask(t);
-                                      }}
-                                      className={`w-3 h-3 rounded flex items-center justify-center border transition shrink-0 ${
-                                        t.status === 'COMPLETED'
-                                          ? 'bg-emerald-500 border-emerald-500 text-white'
-                                          : 'border-slate-300 dark:border-slate-600 hover:border-emerald-500'
-                                      }`}
-                                    >
-                                      {t.status === 'COMPLETED' && <CheckCircle2 className="w-2 h-2" />}
-                                    </button>
-                                    <span
-                                      className={`truncate flex-1 font-medium ${
-                                        t.status === 'COMPLETED'
-                                          ? 'line-through text-slate-400 dark:text-slate-500'
-                                          : 'text-slate-800 dark:text-slate-200'
-                                      }`}
-                                    >
-                                      {t.title}
-                                    </span>
+                                    {isCompletedExpanded ? 'Ẩn xong' : `+${completedAttached.length} xong`}
+                                  </button>
+                                )}
+                              </div>
+
+                              <div className="space-y-1">
+                                {displayedAttached.map((t) => renderTaskCard(t, true))}
+                                {pendingAttached.length === 0 && !isCompletedExpanded && (
+                                  <div className="text-center py-0.5 text-[8.5px] text-emerald-600 dark:text-emerald-400 italic">
+                                    ✓ Đã xong ({completedAttached.length})
                                   </div>
-                                ))}
+                                )}
                               </div>
                             </div>
                           )}
                         </div>
                       );
-                    })
-                  )}
-                </div>
-              </div>
+                    })}
 
-              {/* 2. BOTTOM COMPARTMENT: Nhiệm vụ chia riêng ở dưới */}
-              <div className="flex-1 min-h-0 flex flex-col border-t-2 border-slate-200 dark:border-slate-800 pt-1.5 overflow-hidden">
-                <div className="text-[10px] font-semibold tracking-wider text-slate-500 dark:text-slate-400 uppercase px-1 pb-1 flex items-center justify-between shrink-0">
-                  <span className="flex items-center gap-1 font-bold">
-                    <span>📝 Nhiệm vụ</span>
-                    <span className="font-mono text-[9px] px-1 rounded bg-slate-100 dark:bg-slate-800">
-                      {day.tasks.length}
-                    </span>
-                  </span>
-                  <button
-                    onClick={() => onAddTaskForDay(day.date)}
-                    className="text-neutral-900 dark:text-neutral-100 hover:opacity-75 font-bold text-xs"
-                    title="Thêm task cho ngày này"
-                  >
-                    +
-                  </button>
-                </div>
+                    {/* 2. STANDALONE TIMED TASKS (KHÔNG ĐÍNH KÈM LỊCH) */}
+                    {processedTimedTasks.map((item) => {
+                      const isDone = item.task.status === 'COMPLETED';
+                      if (isDone && !isCompletedExpanded) return null;
 
-                <div className="flex-1 min-h-0 overflow-y-auto pr-0.5 space-y-1.5 scrollbar-thin">
-                  {day.tasks.length === 0 ? (
-                    <div className="py-6 text-center text-[10px] text-slate-400 dark:text-slate-600 italic">
-                      Chưa có nhiệm vụ
-                    </div>
-                  ) : (
-                    day.tasks.map((t) => {
-                      const isDone = t.status === 'COMPLETED';
-                      const pCfg = PRIORITY_CONFIG[(t.priority as PriorityLevel)] || PRIORITY_CONFIG.MEDIUM;
-                      const dCfg = DIFFICULTY_CONFIG[t.difficulty] || DIFFICULTY_CONFIG[2];
-
-                      // Dynamic left border based on priority
-                      const priorityBorder = isDone
-                        ? 'border-l-slate-300 dark:border-l-slate-700'
-                        : t.priority === 'URGENT'
-                        ? 'border-l-rose-500'
-                        : t.priority === 'HIGH'
-                        ? 'border-l-amber-500'
-                        : t.priority === 'MEDIUM'
-                        ? 'border-l-blue-400 dark:border-l-blue-500'
-                        : 'border-l-slate-300 dark:border-l-slate-600';
+                      const colWidthPct = 100 / item.totalCols;
+                      const colLeftPct = item.colIndex * colWidthPct;
 
                       return (
                         <div
-                          key={t.id}
-                          className={`rounded-lg p-2 border border-l-[3.5px] ${priorityBorder} text-xs transition-all cursor-pointer shadow-2xs group ${
-                            isDone
-                              ? 'bg-slate-50 border-slate-200 text-slate-400 dark:bg-slate-900/40 dark:border-slate-800 dark:text-slate-500'
-                              : 'bg-white border-slate-200 hover:border-neutral-900 text-slate-900 dark:bg-slate-800/80 dark:border-slate-700 dark:hover:border-neutral-100 dark:text-slate-200'
-                          }`}
-                          onClick={() => onTaskClick(t)}
+                          key={item.id}
+                          className="absolute z-20"
+                          style={{
+                            top: `${item.top}px`,
+                            height: `${item.height}px`,
+                            left: `calc(${colLeftPct}% + 1px)`,
+                            width: `calc(${colWidthPct}% - 2px)`,
+                          }}
                         >
-                          <div className="flex items-start gap-1.5">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onToggleTask(t);
-                              }}
-                              className="mt-0.5 text-slate-400 hover:text-emerald-500 shrink-0"
-                            >
-                              {isDone ? (
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                              ) : (
-                                <div className="w-3.5 h-3.5 rounded border border-slate-300 dark:border-slate-500 hover:border-emerald-500" />
-                              )}
-                            </button>
-                            <div className="flex-1 min-w-0">
-                              <p
-                                className={`font-medium truncate text-xs ${
-                                  isDone ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-slate-100'
-                                }`}
-                              >
-                                {t.title}
-                              </p>
-                              <div className="flex items-center gap-1 mt-1.5 text-[10px] flex-wrap">
-                                {/* Priority badge */}
-                                <span
-                                  title={`Mức ưu tiên: ${pCfg.label} - ${pCfg.description}`}
-                                  className={`inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded font-bold border text-[9px] ${pCfg.badgeBg} ${pCfg.textColor} ${pCfg.borderColor}`}
-                                >
-                                  <Flag className="w-2.5 h-2.5" />
-                                  <span>{pCfg.shortLabel}</span>
-                                </span>
-
-                                {/* Difficulty badge */}
-                                <span
-                                  title={`Độ khó: ${dCfg.label} (+${dCfg.points} điểm) - ${dCfg.description}`}
-                                  className={`inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded font-bold border text-[9px] ${dCfg.bg} ${dCfg.color} ${dCfg.border}`}
-                                >
-                                  <Flame className="w-2.5 h-2.5 fill-current" />
-                                  <span>{dCfg.shortLabel}</span>
-                                </span>
-
-                                {t.subtasks_count > 0 && (
-                                  <span
-                                    title={`Tiến độ subtasks: ${t.subtasks_completed_count}/${t.subtasks_count}`}
-                                    className="font-mono text-[9px] text-slate-500 dark:text-slate-400 font-semibold px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800"
-                                  >
-                                    {t.subtasks_completed_count}/{t.subtasks_count}
-                                  </span>
-                                )}
-
-                                {t.course_title && (
-                                  <span
-                                    className="text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/80 px-1 py-0.2 rounded text-[9px] truncate max-w-[85px] font-medium"
-                                    title={`Khóa học: ${t.course_title}`}
-                                  >
-                                    📚 {t.course_title}
-                                  </span>
-                                )}
-
-                                {t.scheduled_with_fixed_title && (
-                                  <span
-                                    className="text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800/80 px-1 py-0.2 rounded text-[9px] truncate max-w-[90px] font-medium"
-                                    title={`Lịch cố định: ${t.scheduled_with_fixed_title}`}
-                                  >
-                                    📌 {t.scheduled_with_fixed_title}
-                                  </span>
-                                )}
-
-                                {t.due_datetime && (
-                                  <span
-                                    title={`Hạn chót: ${new Date(t.due_datetime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - ${getDeadlineInfo(t.due_datetime, t.status).text}`}
-                                    className={`inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded font-bold border text-[9px] ${
-                                      getDeadlineInfo(t.due_datetime, t.status).badgeClass
-                                    }`}
-                                  >
-                                    <Clock className="w-2.5 h-2.5 shrink-0" />
-                                    <span>{getDeadlineInfo(t.due_datetime, t.status).shortText}</span>
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            {onDeleteTask && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onDeleteTask(t);
-                                }}
-                                className="text-slate-400 hover:text-rose-500 transition p-0.5 rounded opacity-0 group-hover:opacity-100 shrink-0 self-start"
-                                title="Xóa nhiệm vụ này"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            )}
-                          </div>
+                          {renderTaskCard(item.task, false)}
                         </div>
                       );
-                    })
-                  )}
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* D. BIG RED/ROSE HORIZONTAL TIME NEEDLE (THANH THỜI GIAN LỚN CHẠY NGANG TUẦN) */}
+            {isCurrentWeek && (
+              <div
+                className="absolute left-0 right-0 z-30 pointer-events-none flex items-center transition-all duration-1000 ease-linear"
+                style={{ top: `${timeNeedleTop}px` }}
+              >
+                {/* Left Gutter Needle Badge */}
+                <div className="w-[54px] pr-1 flex items-center justify-end">
+                  <span className="bg-rose-500 text-white font-mono text-[9px] font-bold px-1 py-0.5 rounded shadow-md shadow-rose-500/50 flex items-center gap-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                    {currentTimeLabel}
+                  </span>
+                </div>
+
+                {/* Full-width glowing bar spanning across 7 columns */}
+                <div className="flex-1 relative flex items-center">
+                  <div className="w-full border-t-2 border-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.9)]" />
+
+                  {/* Prominent beacon on Today's column */}
+                  {computedDays.map(({ day }, colIdx) => {
+                    if (!day.is_today && day.date !== todayStr) return null;
+                    const leftColPct = (colIdx / 7) * 100;
+                    const centerColPct = leftColPct + 100 / 14;
+
+                    return (
+                      <div
+                        key={day.date}
+                        className="absolute flex items-center justify-center -top-2"
+                        style={{ left: `${centerColPct}%`, transform: 'translateX(-50%)' }}
+                      >
+                        <span className="w-4 h-4 rounded-full bg-rose-500/30 animate-ping absolute" />
+                        <span className="w-3 h-3 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900 shadow-md flex items-center justify-center" />
+                        <span className="absolute -top-4 font-mono text-[8px] font-extrabold px-1 rounded bg-rose-600 text-white shadow-xs">
+                          Hiện tại
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            </div>
+            )}
           </div>
-        );
-        })}
         </div>
       </div>
     </div>

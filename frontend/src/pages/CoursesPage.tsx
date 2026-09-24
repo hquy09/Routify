@@ -502,7 +502,7 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({ onNavigateTab }) => {
         <div>
           <div className="flex items-center gap-2">
             <GraduationCap className="w-5 h-5 text-neutral-900 dark:text-neutral-100" />
-            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Khóa học & Lộ trình (Courses)</h2>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Khóa học & Lộ trình</h2>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Quản lý cây kiến thức đa cấp, liên kết mục tiêu đếm ngược và phân tích thông minh nguy cơ Burnout
@@ -1263,7 +1263,7 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({ onNavigateTab }) => {
           {courseCoverStyle === 'SWISS' && (
             <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
               <div className="space-y-0.5">
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Phong cách Swiss Tối giản (Swiss Style)</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Phong cách tối giản Thụy Sĩ</span>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Tiến độ bài học: {courseDetail.completed_nodes_count} / {courseDetail.total_nodes_count} mục hoàn thành ({courseCoverConfig.swiss_direction === 'COUNTER_CLOCKWISE' ? '↺ Ngược chiều kim đồng hồ' : '↻ Theo chiều kim đồng hồ'})
                 </p>
@@ -1670,7 +1670,7 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({ onNavigateTab }) => {
                 {/* Swiss Direction */}
                 {newCourseCoverStyle === 'SWISS' && (
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2 animate-in fade-in duration-150">
-                    <label className="text-[10px] text-slate-500 block mb-1">Hướng chạy vòng cung Thụy Sĩ (Swiss Gauge)</label>
+                    <label className="text-[10px] text-slate-500 block mb-1">Hướng chạy vòng cung Thụy Sĩ</label>
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
@@ -2154,7 +2154,7 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({ onNavigateTab }) => {
                 {/* Swiss Direction */}
                 {editCourseCoverStyle === 'SWISS' && (
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2 animate-in fade-in duration-150">
-                    <label className="text-[10px] text-slate-500 block mb-1">Hướng chạy vòng cung Thụy Sĩ (Swiss Gauge)</label>
+                    <label className="text-[10px] text-slate-500 block mb-1">Hướng chạy vòng cung Thụy Sĩ</label>
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
@@ -2483,17 +2483,17 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({ onNavigateTab }) => {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Loại mục (Type)</label>
+                  <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Loại mục</label>
                   <select
                     value={newNodeType}
                     onChange={(e) => setNewNodeType(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-neutral-100"
                   >
-                    <option value="SECTION">📁 Section (Phần lớn)</option>
-                    <option value="CHAPTER">📑 Chapter (Chương)</option>
-                    <option value="LESSON">📖 Lesson (Bài học)</option>
-                    <option value="TOPIC">💡 Topic (Chủ đề)</option>
-                    <option value="RESOURCE">📎 Resource (Tài liệu)</option>
+                    <option value="SECTION">📁 Phần lớn</option>
+                    <option value="CHAPTER">📑 Chương</option>
+                    <option value="LESSON">📖 Bài học</option>
+                    <option value="TOPIC">💡 Chủ đề</option>
+                    <option value="RESOURCE">📎 Tài liệu</option>
                   </select>
                 </div>
                 {newNodeType === 'LESSON' ? (

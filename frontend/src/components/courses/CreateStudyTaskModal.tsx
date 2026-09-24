@@ -158,7 +158,7 @@ export const CreateStudyTaskModal: React.FC<CreateStudyTaskModalProps> = ({
             }`}
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            <span>Nhiệm vụ (Task)</span>
+            <span>Nhiệm vụ</span>
           </button>
           <button
             type="button"
@@ -170,7 +170,7 @@ export const CreateStudyTaskModal: React.FC<CreateStudyTaskModalProps> = ({
             }`}
           >
             <Calendar className="w-3.5 h-3.5 text-indigo-200" />
-            <span>Sự kiện / Lịch học (Event)</span>
+            <span>Sự kiện / Lịch học</span>
           </button>
         </div>
 
@@ -201,24 +201,24 @@ export const CreateStudyTaskModal: React.FC<CreateStudyTaskModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Độ khó (1 - 5)</label>
+                  <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Độ khó</label>
                   <select
                     value={difficulty}
                     onChange={(e) => setDifficulty(Number(e.target.value))}
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                   >
-                    <option value={1}>1 - Dễ (Easy)</option>
-                    <option value={2}>2 - Bình thường (Normal)</option>
-                    <option value={3}>3 - Trung bình (Medium)</option>
-                    <option value={4}>4 - Khó (Hard)</option>
-                    <option value={5}>5 - Cực khó (Extreme)</option>
+                    <option value={1}>1 - Dễ</option>
+                    <option value={2}>2 - Bình thường</option>
+                    <option value={3}>3 - Khó</option>
+                    <option value={4}>4 - Rất khó</option>
+                    <option value={5}>5 - Cực khó</option>
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Mục tiêu (Goal)</label>
+                  <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Mục tiêu</label>
                   <select
                     value={goalId || ''}
                     onChange={(e) => {
@@ -237,7 +237,7 @@ export const CreateStudyTaskModal: React.FC<CreateStudyTaskModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Dự án (Project)</label>
+                  <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Dự án</label>
                   <select
                     value={projectId || ''}
                     disabled={!goalId || availableProjects.length === 0}
@@ -332,7 +332,7 @@ export const CreateStudyTaskModal: React.FC<CreateStudyTaskModalProps> = ({
               <div className="p-2.5 rounded-lg border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/40 dark:bg-indigo-950/20 flex items-center justify-between">
                 <div>
                   <div className="font-semibold text-slate-800 dark:text-slate-200 text-xs">
-                    Tự động tạo kèm Task ôn bài
+                    Tự động tạo kèm nhiệm vụ ôn bài
                   </div>
                   <div className="text-[10px] text-slate-500">
                     Đính kèm nhiệm vụ vào khung giờ lịch này
@@ -368,7 +368,7 @@ export const CreateStudyTaskModal: React.FC<CreateStudyTaskModalProps> = ({
                   ? 'Đang tạo...'
                   : mode === 'EVENT'
                   ? 'Tạo Sự kiện Lịch học'
-                  : 'Tạo Study Task'}
+                  : 'Tạo Nhiệm vụ học tập'}
               </span>
             </Button>
           </div>

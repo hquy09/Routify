@@ -71,7 +71,7 @@ export const ArchivePage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Kho Lưu Trữ (Archive)</h2>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Kho lưu trữ</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Lịch sử tuần đã hoàn tất, đóng băng snapshot hiệu suất mà không làm mất dữ liệu gốc
           </p>
@@ -186,7 +186,7 @@ export const ArchivePage: React.FC = () => {
                 <div className="space-y-3 pt-2">
                   <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
                     <Award className="w-4 h-4 text-neutral-900 dark:text-neutral-100" />
-                    <span>Ghi chú phản tư tuần (Weekly Review)</span>
+                    <span>Ghi chú phản tư tuần</span>
                   </div>
 
                   <div className="space-y-2 text-xs">

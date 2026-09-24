@@ -170,7 +170,7 @@ export const TaskRowItem: React.FC<TaskRowItemProps> = ({
             <span
               onClick={() => setIsExpanded(!isExpanded)}
               className="px-1.5 py-0.5 rounded font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-200"
-              title={`Tiến độ subtasks: ${task.subtasks_completed_count}/${task.subtasks_count}`}
+              title={`Tiến độ việc con: ${task.subtasks_completed_count}/${task.subtasks_count}`}
             >
               {task.subtasks_completed_count}/{task.subtasks_count} việc
             </span>
@@ -182,7 +182,7 @@ export const TaskRowItem: React.FC<TaskRowItemProps> = ({
               type="button"
               onClick={() => onTransfer(task)}
               className="p-1 text-slate-400 hover:text-purple-600 transition rounded"
-              title="Chuyển giao task sang ngày khác"
+              title="Chuyển tiếp nhiệm vụ sang ngày khác"
             >
               <ArrowRightLeft className="w-3.5 h-3.5" />
             </button>
@@ -190,7 +190,7 @@ export const TaskRowItem: React.FC<TaskRowItemProps> = ({
               type="button"
               onClick={() => onEdit(task)}
               className="p-1 text-slate-400 hover:text-blue-600 transition rounded"
-              title="Chỉnh sửa task"
+              title="Chỉnh sửa nhiệm vụ"
             >
               <Edit2 className="w-3.5 h-3.5" />
             </button>
@@ -198,7 +198,7 @@ export const TaskRowItem: React.FC<TaskRowItemProps> = ({
               type="button"
               onClick={() => onDelete(task.id)}
               className="p-1 text-slate-400 hover:text-rose-500 transition rounded"
-              title="Xóa task"
+              title="Xóa nhiệm vụ"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -210,7 +210,7 @@ export const TaskRowItem: React.FC<TaskRowItemProps> = ({
       {isExpanded && task.subtasks && task.subtasks.length > 0 && (
         <div className="px-4 py-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-1.5">
           <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
-            <span>Danh sách bước làm (Subtasks):</span>
+            <span>Danh sách bước làm:</span>
             <span>{Math.round(task.subtask_progress || 0)}% hoàn thành</span>
           </div>
           <div className="space-y-1">

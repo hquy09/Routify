@@ -62,7 +62,7 @@ export const CalendarGreetingQuote: React.FC = () => {
           current_hour: new Date().getHours(),
           quote: 'Hạnh phúc của cuộc đời phụ thuộc vào chất lượng của những suy nghĩ trong tâm trí bạn.',
           author: 'Marcus Aurelius',
-          school: 'Chủ nghĩa Khắc kỷ (Stoicism)',
+          school: 'Chủ nghĩa Khắc kỷ',
           original_quote: 'The happiness of your life depends upon the quality of your thoughts.'
         });
       }

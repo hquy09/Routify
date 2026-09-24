@@ -34,9 +34,9 @@ export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ days }) => {
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
-          <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">Bản đồ nhiệt hoạt động (Activity Heatmap)</h4>
+          <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">Bản đồ nhiệt hoạt động</h4>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Tần suất làm việc trong 6 tháng qua (GitHub contribution style)
+            Tần suất hoàn thành nhiệm vụ trong 6 tháng qua
           </p>
         </div>
 
@@ -48,7 +48,7 @@ export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ days }) => {
               mode === 'COUNT' ? 'bg-white dark:bg-neutral-100 text-slate-900 dark:text-neutral-900 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
-            Số lượng Task
+            Số lượng nhiệm vụ
           </button>
           <button
             onClick={() => setMode('DIFFICULTY')}
@@ -56,7 +56,7 @@ export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ days }) => {
               mode === 'DIFFICULTY' ? 'bg-white dark:bg-neutral-100 text-slate-900 dark:text-neutral-900 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
-            Điểm độ khó (Difficulty)
+            Điểm độ khó
           </button>
         </div>
       </div>

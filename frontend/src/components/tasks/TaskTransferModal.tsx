@@ -53,7 +53,7 @@ export const TaskTransferModal: React.FC<TaskTransferModalProps> = ({
         <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2.5 text-purple-700 dark:text-purple-400 font-semibold text-base">
             <ArrowRightLeft className="w-5 h-5" />
-            <span>Chuyển giao Task (Task Transfer)</span>
+            <span>Chuyển tiếp nhiệm vụ</span>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition">
             <X className="w-5 h-5" />
@@ -67,14 +67,14 @@ export const TaskTransferModal: React.FC<TaskTransferModalProps> = ({
             <span>Bảo toàn lịch sử thống kê</span>
           </div>
           <p className="text-[11px] text-purple-700 dark:text-purple-300/80 leading-relaxed">
-            Task cũ <strong>"{task.title}"</strong> sẽ được giữ nguyên trạng thái <strong>Đã chuyển giao (TRANSFERRED)</strong>.
-            Hệ thống sẽ tạo một Task mới cho ngày bạn chọn để ghi nhận rằng task ban đầu chưa hoàn thành đúng hạn.
+            Nhiệm vụ cũ <strong>"{task.title}"</strong> sẽ được ghi nhận trạng thái <strong>Đã chuyển tiếp</strong>.
+            Hệ thống sẽ tạo một nhiệm vụ mới cho ngày bạn chọn để đảm bảo dữ liệu kỷ luật chính xác.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Thời hạn mới (New Due Date)</label>
+            <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Thời hạn mới</label>
             <input
               type="datetime-local"
               value={newDueDate}
@@ -85,7 +85,7 @@ export const TaskTransferModal: React.FC<TaskTransferModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Ghi chú chuyển giao (Tùy chọn)</label>
+            <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Ghi chú chuyển tiếp (Tùy chọn)</label>
             <input
               type="text"
               placeholder="VD: Bận việc gia đình, chuyển sang ngày mai"
@@ -102,7 +102,7 @@ export const TaskTransferModal: React.FC<TaskTransferModalProps> = ({
               onChange={(e) => setKeepSubtasks(e.target.checked)}
               className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-purple-600 focus:ring-0"
             />
-            <span>Sao chép danh sách subtask sang task mới</span>
+            <span>Sao chép danh sách việc con sang nhiệm vụ mới</span>
           </label>
 
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">

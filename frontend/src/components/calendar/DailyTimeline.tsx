@@ -421,7 +421,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({
             onClick={() => onAddTask(dateStr)}
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Thêm Task</span>
+            <span>Thêm nhiệm vụ</span>
           </Button>
           <Button
             variant="outline"
@@ -429,7 +429,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({
             onClick={onAddSchedule}
           >
             <Plus className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400" />
-            <span>Lịch cố định</span>
+            <span>Tạo Lịch cố định</span>
           </Button>
         </div>
       </div>
@@ -512,7 +512,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({
               <div className="flex items-center justify-between mb-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 <span className="flex items-center gap-1.5">
                   <Layers className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400" />
-                  Nhiệm vụ cả ngày / Chưa gán giờ cụ thể ({allDayTasks.length})
+                  Nhiệm vụ cả ngày ({allDayTasks.length})
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -1076,7 +1076,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({
               <button
                 onClick={() => onAddTask(dateStr)}
                 className="text-neutral-900 dark:text-neutral-100 hover:opacity-75 font-bold text-xs transition"
-                title="Tạo Task mới"
+                title="Tạo nhiệm vụ mới"
               >
                 + Thêm
               </button>

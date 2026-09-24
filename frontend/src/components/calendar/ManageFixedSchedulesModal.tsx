@@ -250,7 +250,7 @@ export const ManageFixedSchedulesModal: React.FC<ManageFixedSchedulesModalProps>
               className="gap-1 text-xs"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Thêm mới</span>
+              <span>Tạo Lịch cố định</span>
             </Button>
 
             {/* Close button */}
@@ -258,7 +258,7 @@ export const ManageFixedSchedulesModal: React.FC<ManageFixedSchedulesModalProps>
               type="button"
               onClick={onClose}
               className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
-              title="Đóng (Esc)"
+              title="Đóng"
             >
               <X className="w-5 h-5" />
             </button>
@@ -484,7 +484,7 @@ export const ManageFixedSchedulesModal: React.FC<ManageFixedSchedulesModalProps>
                   }}
                   className="px-3.5 py-1.5 rounded-lg border border-neutral-300 dark:border-neutral-700 font-semibold text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
                 >
-                  + Thêm thủ công
+                  + Tạo Lịch cố định
                 </button>
               </div>
             </div>
@@ -914,7 +914,7 @@ export const ManageFixedSchedulesModal: React.FC<ManageFixedSchedulesModalProps>
         {/* Footer */}
         <div className="pt-3 border-t border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
           <div className="text-xs text-neutral-400 flex items-center gap-2">
-            <span>💡 Mẹo: Bấm vào biểu tượng nguồn (Power) để tạm dừng lịch mà không cần xóa.</span>
+            <span>💡 Mẹo: Bấm vào nút Bật/Tắt để tạm dừng lịch mà không cần xóa.</span>
           </div>
 
           <Button variant="outline" onClick={onClose}>

@@ -80,23 +80,23 @@ export const AddFixedScheduleModal: React.FC<AddFixedScheduleModalProps> = ({
   };
 
   const days = [
-    { id: 0, label: 'Thứ 2 (Monday)' },
-    { id: 1, label: 'Thứ 3 (Tuesday)' },
-    { id: 2, label: 'Thứ 4 (Wednesday)' },
-    { id: 3, label: 'Thứ 5 (Thursday)' },
-    { id: 4, label: 'Thứ 6 (Friday)' },
-    { id: 5, label: 'Thứ 7 (Saturday)' },
-    { id: 6, label: 'Chủ nhật (Sunday)' },
+    { id: 0, label: 'Thứ Hai' },
+    { id: 1, label: 'Thứ Ba' },
+    { id: 2, label: 'Thứ Tư' },
+    { id: 3, label: 'Thứ Năm' },
+    { id: 4, label: 'Thứ Sáu' },
+    { id: 5, label: 'Thứ Bảy' },
+    { id: 6, label: 'Chủ Nhật' },
   ];
 
   const categories = [
-    { id: 'SCHOOL', label: '🏫 School (Trường học)', color: '#3b82f6' },
-    { id: 'STUDY', label: '📚 Study (Học thêm/Tự học)', color: '#8b5cf6' },
-    { id: 'WORK', label: '💼 Work (Làm việc)', color: '#f59e0b' },
-    { id: 'EXERCISE', label: '🏃 Exercise (Thể thao/Gym)', color: '#10b981' },
-    { id: 'SLEEP', label: '😴 Sleep (Giấc ngủ)', color: '#64748b' },
-    { id: 'PERSONAL', label: '👤 Personal (Cá nhân)', color: '#ec4899' },
-    { id: 'OTHER', label: '📌 Other (Khác)', color: '#6366f1' },
+    { id: 'SCHOOL', label: '🏫 Trường học', color: '#3b82f6' },
+    { id: 'STUDY', label: '📚 Tự học / Ôn tập', color: '#8b5cf6' },
+    { id: 'WORK', label: '💼 Làm việc', color: '#f59e0b' },
+    { id: 'EXERCISE', label: '🏃 Thể thao / Rèn luyện', color: '#10b981' },
+    { id: 'SLEEP', label: '😴 Giấc ngủ', color: '#64748b' },
+    { id: 'PERSONAL', label: '👤 Cá nhân', color: '#ec4899' },
+    { id: 'OTHER', label: '📌 Khác', color: '#6366f1' },
     { id: 'CUSTOM', label: '✏️ Tùy chỉnh danh mục...', color: '#a855f7' },
   ];
 
@@ -106,7 +106,7 @@ export const AddFixedScheduleModal: React.FC<AddFixedScheduleModalProps> = ({
         <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100 font-bold text-base">
             <CalendarIcon className="w-5 h-5" />
-            <span>Thêm Lịch cố định (Fixed Schedule)</span>
+            <span>Thêm Lịch cố định</span>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition">
             <X className="w-5 h-5" />
@@ -149,7 +149,7 @@ export const AddFixedScheduleModal: React.FC<AddFixedScheduleModalProps> = ({
               <input
                 type="text"
                 disabled
-                value="Hàng tuần (Every week)"
+                value="Hàng tuần"
                 className="w-full bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-lg px-2.5 py-2 text-slate-500 dark:text-slate-400 select-none cursor-not-allowed"
               />
             </div>
@@ -180,7 +180,7 @@ export const AddFixedScheduleModal: React.FC<AddFixedScheduleModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Danh mục (Category)</label>
+            <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Danh mục</label>
             <select
               value={isCustomCategory ? 'CUSTOM' : category}
               onChange={(e) => {

@@ -13,7 +13,7 @@ import {
 } from '../types';
 import { api } from '../services/api';
 import { toLocalDateString, formatDatetimeForBackend } from '../utils/dateUtils';
-import { School, Settings2, Maximize2, Minimize2, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { School, Settings2, Maximize2, Minimize2, ChevronLeft, ChevronRight, Plus, CalendarDays, Calendar, Clock, Compass } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
 export const CalendarPage: React.FC = () => {
@@ -495,172 +495,163 @@ export const CalendarPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 space-y-2.5 h-full">
-      {/* Unified Top Navigation & Functions Bar */}
-      <div className="shrink-0 flex flex-wrap items-center justify-between gap-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 shadow-xs">
-        {/* Left: Week / Date Navigation */}
-        <div className="flex items-center gap-3 flex-wrap">
-          {viewMode === 'WEEKLY' ? (
-            <>
-              <div className="flex items-center gap-2">
-                <span className="text-xl">📅</span>
-                <div>
-                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 leading-tight">
-                    Tuần {weeklyData?.week_number}, Năm {weeklyData?.year}
-                  </h3>
-                  {weeklyData && (
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                      ({formatDateLabel(weeklyData.start_date)} - {formatDateLabel(weeklyData.end_date)})
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Prev / Today / Next Week navigation buttons */}
-              <div className="flex items-center gap-1 ml-1">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handlePrevWeek}
-                  title="Tuần trước"
-                  className="h-8 w-8"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleToday}
-                  className="h-8 text-xs font-semibold px-2.5"
-                >
-                  Tuần hiện tại
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleNextWeek}
-                  title="Tuần sau"
-                  className="h-8 w-8"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </>
-          ) : viewMode === 'DAILY' ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xl">📅</span>
-              <div>
-                <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 leading-tight">
-                  Lịch Ngày
-                </h3>
-                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                  {selectedDayDate}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <span className="text-xl">📅</span>
-              <div>
-                <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 leading-tight">
-                  Lịch Tháng
-                </h3>
-                {monthlyData && (
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                    Tháng {monthlyData.month} / {monthlyData.year}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right: Actions & View Selector */}
-        <div className="ml-auto flex items-center justify-end gap-2 flex-wrap">
-          {/* Preset TKB Trường học */}
-          <button
-            type="button"
-            onClick={() => setIsSchoolPresetOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-900/60 transition shadow-2xs h-8"
-            title="Tạo nhanh Thời khóa biểu đi học trên trường (T2-T6 5 tiết, T7 4 tiết, tùy chỉnh linh hoạt)"
-          >
-            <School className="w-3.5 h-3.5" />
-            <span>🏫 TKB Trường</span>
-          </button>
-
-          {/* Quản lý Lịch cố định */}
-          <button
-            type="button"
-            onClick={() => setIsManageSchedulesOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition shadow-2xs h-8"
-            title="Quản lý, chỉnh sửa, bật/tắt toàn bộ lịch cố định trong tuần"
-          >
-            <Settings2 className="w-3.5 h-3.5" />
-            <span>⚙️ Quản lý Lịch ({allFixedSchedules.length})</span>
-          </button>
-
-          {/* + Thêm Lịch cố định */}
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => handleOpenCreateFixedSchedule()}
-            className="gap-1 text-xs h-8"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Thêm Lịch</span>
-          </Button>
-
-          {/* View mode toggle */}
-          <div className="inline-flex h-8 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800/60 p-0.5 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 select-none">
+    <div className="flex flex-1 min-h-0 h-full gap-2 relative">
+      {/* SLIM VERTICAL FUNCTIONS TOOLBAR (DẠNG DỌC, CHỈ HIỆN ICON TỐI GIẢN) */}
+      <aside
+        className="w-11 shrink-0 flex flex-col items-center py-2.5 px-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs justify-between select-none z-20"
+        aria-label="Thanh công cụ Calendar"
+      >
+        {/* Top Group: View Modes & Navigation & Actions */}
+        <div className="flex flex-col items-center gap-1.5 w-full">
+          {/* 1. View Mode Toggles: Tuần | Ngày | Tháng */}
+          <div className="flex flex-col items-center gap-1 w-full pb-1.5 border-b border-slate-200 dark:border-slate-800">
             <button
               type="button"
               onClick={() => setViewMode('WEEKLY')}
-              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+              className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
                 viewMode === 'WEEKLY'
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                  : 'hover:text-slate-900 dark:hover:text-slate-200'
+                  ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
+              title="Xem theo Tuần"
             >
-              Tuần
+              <CalendarDays className="w-4 h-4" />
             </button>
+
             <button
               type="button"
               onClick={() => setViewMode('DAILY')}
-              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+              className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
                 viewMode === 'DAILY'
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                  : 'hover:text-slate-900 dark:hover:text-slate-200'
+                  ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
+              title="Xem theo Ngày"
             >
-              Ngày
+              <Clock className="w-4 h-4" />
             </button>
+
             <button
               type="button"
               onClick={() => setViewMode('MONTHLY')}
-              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+              className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
                 viewMode === 'MONTHLY'
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                  : 'hover:text-slate-900 dark:hover:text-slate-200'
+                  ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
+              title="Xem theo Tháng"
             >
-              Tháng
+              <Calendar className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Full Screen Weekly Calendar Button */}
+          {/* 2. Navigation: Prev | Today | Next */}
+          <div className="flex flex-col items-center gap-1 w-full py-1.5 border-b border-slate-200 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => {
+                if (viewMode === 'WEEKLY') handlePrevWeek();
+                else if (viewMode === 'DAILY') handlePrevDay();
+                else handlePrevMonth();
+              }}
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              title={
+                viewMode === 'WEEKLY'
+                  ? 'Tuần trước'
+                  : viewMode === 'DAILY'
+                  ? 'Ngày hôm trước'
+                  : 'Tháng trước'
+              }
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (viewMode === 'DAILY') handleTodayDay();
+                else handleToday();
+              }}
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
+              title={
+                viewMode === 'WEEKLY'
+                  ? 'Về Tuần hiện tại'
+                  : viewMode === 'DAILY'
+                  ? 'Về Hôm nay'
+                  : 'Về Tháng hiện tại'
+              }
+            >
+              <Compass className="w-4 h-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (viewMode === 'WEEKLY') handleNextWeek();
+                else if (viewMode === 'DAILY') handleNextDay();
+                else handleNextMonth();
+              }}
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              title={
+                viewMode === 'WEEKLY'
+                  ? 'Tuần sau'
+                  : viewMode === 'DAILY'
+                  ? 'Ngày tiếp theo'
+                  : 'Tháng sau'
+              }
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* 3. Schedule Actions: Thêm Lịch | Quản lý Lịch | TKB Trường */}
+          <div className="flex flex-col items-center gap-1 w-full pt-1">
+            <button
+              type="button"
+              onClick={() => handleOpenCreateFixedSchedule()}
+              className="w-9 h-9 rounded-lg flex items-center justify-center bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:opacity-90 transition shadow-2xs"
+              title="Tạo Lịch cố định mới"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsManageSchedulesOpen(true)}
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition relative"
+              title={`Quản lý toàn bộ Lịch cố định (${allFixedSchedules.length})`}
+            >
+              <Settings2 className="w-4 h-4" />
+              {allFixedSchedules.length > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-indigo-500" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsSchoolPresetOpen(true)}
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition"
+              title="Thời khóa biểu trường học"
+            >
+              <School className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Bottom Group: Full Screen */}
+        <div className="flex flex-col items-center gap-1 w-full pt-2 border-t border-slate-200 dark:border-slate-800">
           {viewMode === 'WEEKLY' && (
             <button
               type="button"
               onClick={() => setIsFullScreenWeekly(true)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:opacity-90 transition shadow-2xs h-8"
-              title="Phóng to bảng lịch toàn màn hình"
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              title="Hiển thị toàn màn hình"
             >
-              <Maximize2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Toàn màn hình</span>
+              <Maximize2 className="w-4 h-4" />
             </button>
           )}
         </div>
-      </div>
+      </aside>
 
       {/* Main Calendar View Content */}
       <div className="flex-1 min-h-0 flex flex-col">
@@ -680,7 +671,7 @@ export const CalendarPage: React.FC = () => {
               setIsTaskModalOpen(true);
             }}
             onToggleTask={handleToggleTask}
-            onAddTaskForDay={(dateStr) => handleAddTaskWithHour(dateStr)}
+            onAddTaskForDay={(dateStr, hour) => handleAddTaskWithHour(dateStr, hour)}
             onQuickAddTask={handleQuickAddTask}
             onDeleteTask={handleDeleteTaskWithUndo}
             onEditSchedule={handleOpenEditFixedSchedule}
@@ -771,6 +762,7 @@ export const CalendarPage: React.FC = () => {
         }}
         scheduleToEdit={scheduleToEdit}
         initialDayOfWeek={scheduleDefaultDay}
+        existingSchedules={allFixedSchedules}
         onOpenSchoolPreset={() => {
           setIsScheduleModalOpen(false);
           setScheduleToEdit(null);
@@ -895,7 +887,7 @@ export const CalendarPage: React.FC = () => {
                 setIsTaskModalOpen(true);
               }}
               onToggleTask={handleToggleTask}
-              onAddTaskForDay={(dateStr) => handleAddTaskWithHour(dateStr)}
+              onAddTaskForDay={(dateStr, hour) => handleAddTaskWithHour(dateStr, hour)}
               onQuickAddTask={handleQuickAddTask}
               onDeleteTask={handleDeleteTaskWithUndo}
               onEditSchedule={handleOpenEditFixedSchedule}

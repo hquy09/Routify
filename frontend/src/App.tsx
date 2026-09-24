@@ -136,6 +136,8 @@ export function App() {
               ? 'p-2 sm:p-3 max-w-full flex flex-col min-h-0 h-full overflow-hidden'
               : currentTab === 'dashboard'
               ? 'p-4 md:p-6 max-w-full overflow-y-auto'
+              : currentTab === 'tasks'
+              ? 'p-3 sm:p-5 max-w-full overflow-y-auto'
               : 'p-4 md:p-6 max-w-7xl mx-auto overflow-y-auto'
           }`}
         >

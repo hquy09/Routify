@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import {
   Calendar as CalendarIcon, Clock, AlertCircle,
-  Sun, Sunset, Moon, Sunrise, Coffee, X
+  Sun, Sunset, Moon, Sunrise, Coffee, X, Check, CheckCircle2, AlertTriangle, Sparkles
 } from 'lucide-react';
 import {
   toLocalDateString,
@@ -154,7 +154,11 @@ export const SmartSchedulePicker: React.FC<SmartSchedulePickerProps> = ({
   };
 
   /**
-   * Add duration helper (+30m, +1h, etc.)
+   * Two-Way Duration Helper (+30m, +45m, +1h, +2h, +3h):
+   * 1. If start time exists: calculate due time = start time + minutes
+   * 2. If start time is empty BUT due time exists: calculate start time = due time - minutes!
+   *    (Solves the user's confusion when deadline is 21:00 and start is empty)
+   * 3. If both empty: start = now, due = now + minutes
    */
   const addDuration = (minutes: number) => {
     const baseDate = currentDateStr || todayStr;
@@ -168,12 +172,14 @@ export const SmartSchedulePicker: React.FC<SmartSchedulePickerProps> = ({
       onDueChange(`${baseDate}T${pad(dh)}:${pad(dm)}`);
     } else if (dueTimeStr) {
       const [dh, dm] = dueTimeStr.split(':').map(Number);
-      const totalDueMins = dh * 60 + dm + minutes;
-      const nextH = Math.floor(totalDueMins / 60) % 24;
-      const nextM = totalDueMins % 60;
-      onDueChange(`${baseDate}T${pad(nextH)}:${pad(nextM)}`);
+      const totalDueMins = dh * 60 + dm;
+      let totalStartMins = totalDueMins - minutes;
+      if (totalStartMins < 0) totalStartMins = (totalStartMins + 24 * 60) % (24 * 60);
+      const sh = Math.floor(totalStartMins / 60) % 24;
+      const sm = totalStartMins % 60;
+      onStartChange(`${baseDate}T${pad(sh)}:${pad(sm)}`);
     } else {
-      // Default: start now, due = now + duration
+      // Default: start now rounded to 15m, due = now + duration
       const now = new Date();
       const sH = now.getHours();
       const sM = Math.floor(now.getMinutes() / 15) * 15;
@@ -322,69 +328,116 @@ export const SmartSchedulePicker: React.FC<SmartSchedulePickerProps> = ({
         </div>
       </div>
 
-      {/* 2. Quick Time Slots */}
+      {/* 2. Quick Time Slots (Presets with Active Highlight) */}
       <div>
-        <div className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mb-1.5">
-          Khung giờ thông dụng
+        <div className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+          <span>Khung giờ thông dụng (Bắt đầu ➔ Kết thúc)</span>
+          <span className="text-[9px] font-normal text-neutral-400">Chuẩn 24h</span>
         </div>
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 text-[11px]">
-          <button
-            type="button"
-            onClick={() => applyTimePreset(9, 0, 10, 30)}
-            className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-850 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-200 transition text-center flex flex-col items-center gap-0.5"
-          >
-            <Sunrise className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400" />
-            <span className="font-semibold text-[10px]">Sáng</span>
-            <span className="text-[9px] text-neutral-500">09:00</span>
-          </button>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 text-[11px]">
+          {/* Sáng: 08:00 - 09:30 */}
+          {(() => {
+            const isMorning = startTimeStr === '08:00' && dueTimeStr === '09:30';
+            return (
+              <button
+                type="button"
+                onClick={() => applyTimePreset(8, 0, 9, 30)}
+                className={`p-2 rounded-lg border transition text-center flex flex-col items-center gap-0.5 ${
+                  isMorning
+                    ? 'bg-indigo-600 text-white dark:bg-indigo-500 border-indigo-600 font-bold shadow-xs'
+                    : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-850 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-200'
+                }`}
+              >
+                <Sunrise className={`w-3.5 h-3.5 ${isMorning ? 'text-white' : 'text-amber-500'}`} />
+                <span className="font-semibold text-[10px]">Sáng</span>
+                <span className={`text-[9px] ${isMorning ? 'text-indigo-100' : 'text-neutral-500'}`}>08:00 - 09:30</span>
+              </button>
+            );
+          })()}
 
-          <button
-            type="button"
-            onClick={() => applyTimePreset(14, 0, 15, 30)}
-            className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-850 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-200 transition text-center flex flex-col items-center gap-0.5"
-          >
-            <Sun className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400" />
-            <span className="font-semibold text-[10px]">Chiều</span>
-            <span className="text-[9px] text-neutral-500">14:00</span>
-          </button>
+          {/* Chiều: 14:00 - 15:30 */}
+          {(() => {
+            const isAfternoon = startTimeStr === '14:00' && dueTimeStr === '15:30';
+            return (
+              <button
+                type="button"
+                onClick={() => applyTimePreset(14, 0, 15, 30)}
+                className={`p-2 rounded-lg border transition text-center flex flex-col items-center gap-0.5 ${
+                  isAfternoon
+                    ? 'bg-indigo-600 text-white dark:bg-indigo-500 border-indigo-600 font-bold shadow-xs'
+                    : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-850 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-200'
+                }`}
+              >
+                <Sun className={`w-3.5 h-3.5 ${isAfternoon ? 'text-white' : 'text-orange-500'}`} />
+                <span className="font-semibold text-[10px]">Chiều</span>
+                <span className={`text-[9px] ${isAfternoon ? 'text-indigo-100' : 'text-neutral-500'}`}>14:00 - 15:30</span>
+              </button>
+            );
+          })()}
 
-          <button
-            type="button"
-            onClick={() => applyTimePreset(20, 0, 21, 30)}
-            className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-850 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-200 transition text-center flex flex-col items-center gap-0.5"
-          >
-            <Sunset className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400" />
-            <span className="font-semibold text-[10px]">Tối</span>
-            <span className="text-[9px] text-neutral-500">20:00</span>
-          </button>
+          {/* Tối: 19:30 - 21:00 */}
+          {(() => {
+            const isEvening = startTimeStr === '19:30' && dueTimeStr === '21:00';
+            return (
+              <button
+                type="button"
+                onClick={() => applyTimePreset(19, 30, 21, 0)}
+                className={`p-2 rounded-lg border transition text-center flex flex-col items-center gap-0.5 ${
+                  isEvening
+                    ? 'bg-indigo-600 text-white dark:bg-indigo-500 border-indigo-600 font-bold shadow-xs'
+                    : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-850 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-200'
+                }`}
+              >
+                <Sunset className={`w-3.5 h-3.5 ${isEvening ? 'text-white' : 'text-rose-500'}`} />
+                <span className="font-semibold text-[10px]">Tối</span>
+                <span className={`text-[9px] ${isEvening ? 'text-indigo-100' : 'text-neutral-500'}`}>19:30 - 21:00</span>
+              </button>
+            );
+          })()}
 
-          <button
-            type="button"
-            onClick={() => applyTimePreset(21, 30, 22, 30)}
-            className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-850 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-200 transition text-center flex flex-col items-center gap-0.5"
-          >
-            <Moon className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400" />
-            <span className="font-semibold text-[10px]">Đêm</span>
-            <span className="text-[9px] text-neutral-500">21:30</span>
-          </button>
+          {/* Đêm: 21:00 - 22:30 */}
+          {(() => {
+            const isNight = startTimeStr === '21:00' && dueTimeStr === '22:30';
+            return (
+              <button
+                type="button"
+                onClick={() => applyTimePreset(21, 0, 22, 30)}
+                className={`p-2 rounded-lg border transition text-center flex flex-col items-center gap-0.5 ${
+                  isNight
+                    ? 'bg-indigo-600 text-white dark:bg-indigo-500 border-indigo-600 font-bold shadow-xs'
+                    : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-850 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-200'
+                }`}
+              >
+                <Moon className={`w-3.5 h-3.5 ${isNight ? 'text-white' : 'text-indigo-400'}`} />
+                <span className="font-semibold text-[10px]">Đêm</span>
+                <span className={`text-[9px] ${isNight ? 'text-indigo-100' : 'text-neutral-500'}`}>21:00 - 22:30</span>
+              </button>
+            );
+          })()}
 
-          <button
-            type="button"
-            onClick={applyAllDay}
-            className={`p-1.5 rounded-lg border transition text-center flex flex-col items-center gap-0.5 ${
-              dueTimeStr === '00:00' && !startTimeStr
-                ? 'bg-neutral-900 border-neutral-900 text-white dark:bg-white dark:border-white dark:text-neutral-900 font-semibold'
-                : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-850 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-200'
-            }`}
-          >
-            <Coffee className="w-3.5 h-3.5" />
-            <span className="font-semibold text-[10px]">Cả ngày</span>
-            <span className="text-[9px] text-neutral-500 dark:text-neutral-400">Không giờ</span>
-          </button>
+          {/* Cả ngày */}
+          {(() => {
+            const isAllDayActive = dueTimeStr === '00:00' && !startTimeStr;
+            return (
+              <button
+                type="button"
+                onClick={applyAllDay}
+                className={`p-2 rounded-lg border transition text-center flex flex-col items-center gap-0.5 col-span-2 sm:col-span-1 ${
+                  isAllDayActive
+                    ? 'bg-indigo-600 text-white dark:bg-indigo-500 border-indigo-600 font-bold shadow-xs'
+                    : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-850 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-200'
+                }`}
+              >
+                <Coffee className={`w-3.5 h-3.5 ${isAllDayActive ? 'text-white' : 'text-neutral-500'}`} />
+                <span className="font-semibold text-[10px]">Cả ngày</span>
+                <span className={`text-[9px] ${isAllDayActive ? 'text-indigo-100' : 'text-neutral-500'}`}>Không cố định giờ</span>
+              </button>
+            );
+          })()}
         </div>
       </div>
 
-      {/* 3. Detailed Precise Date & Time Inputs (Completely Independent - No Auto Overwriting) */}
+      {/* 3. Detailed Precise Date & Time Inputs with 24-Hour Formatted Badges */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
         {/* Date Input */}
         <div>
@@ -395,16 +448,23 @@ export const SmartSchedulePicker: React.FC<SmartSchedulePickerProps> = ({
             type="date"
             value={currentDateStr}
             onChange={(e) => handleDateChange(e.target.value)}
-            className="w-full bg-white dark:bg-neutral-850 border border-neutral-300 dark:border-neutral-700 rounded-lg px-2.5 py-1.5 text-xs text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+            className="w-full bg-white dark:bg-neutral-850 border border-neutral-300 dark:border-neutral-700 rounded-lg px-2.5 py-1.5 text-xs text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
         </div>
 
         {/* Start Time Input */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="text-[11px] font-semibold text-neutral-700 dark:text-neutral-300">
-              Giờ bắt đầu <span className="text-[10px] font-normal text-neutral-500">(Tùy chọn)</span>
-            </label>
+            <div className="flex items-center gap-1.5">
+              <label className="text-[11px] font-semibold text-neutral-700 dark:text-neutral-300">
+                Giờ bắt đầu
+              </label>
+              {startTimeStr && (
+                <span className="font-mono text-[9px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1 py-0.2 rounded border border-indigo-200 dark:border-indigo-800">
+                  {startTimeStr} (24h)
+                </span>
+              )}
+            </div>
             {startTimeStr && (
               <button
                 type="button"
@@ -413,7 +473,7 @@ export const SmartSchedulePicker: React.FC<SmartSchedulePickerProps> = ({
                 title="Bỏ giờ bắt đầu"
               >
                 <X className="w-3 h-3" />
-                <span>Bỏ giờ</span>
+                <span>Bỏ</span>
               </button>
             )}
           </div>
@@ -421,16 +481,23 @@ export const SmartSchedulePicker: React.FC<SmartSchedulePickerProps> = ({
             type="time"
             value={startTimeStr}
             onChange={(e) => handleStartTimeChange(e.target.value)}
-            className="w-full bg-white dark:bg-neutral-850 border border-neutral-300 dark:border-neutral-700 rounded-lg px-2.5 py-1.5 text-xs text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+            className="w-full bg-white dark:bg-neutral-850 border border-neutral-300 dark:border-neutral-700 rounded-lg px-2.5 py-1.5 text-xs text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
         </div>
 
         {/* Due Time Input */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="text-[11px] font-semibold text-neutral-700 dark:text-neutral-300">
-              Hạn chót (Kết thúc)
-            </label>
+            <div className="flex items-center gap-1.5">
+              <label className="text-[11px] font-semibold text-neutral-700 dark:text-neutral-300">
+                Hạn chót (Kết thúc)
+              </label>
+              {dueTimeStr && (
+                <span className="font-mono text-[9px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1 py-0.2 rounded border border-indigo-200 dark:border-indigo-800">
+                  {dueTimeStr} (24h)
+                </span>
+              )}
+            </div>
             {dueTimeStr && (
               <button
                 type="button"
@@ -447,32 +514,43 @@ export const SmartSchedulePicker: React.FC<SmartSchedulePickerProps> = ({
             type="time"
             value={dueTimeStr}
             onChange={(e) => handleDueTimeChange(e.target.value)}
-            className="w-full bg-white dark:bg-neutral-850 border border-neutral-300 dark:border-neutral-700 rounded-lg px-2.5 py-1.5 text-xs text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white"
+            className="w-full bg-white dark:bg-neutral-850 border border-neutral-300 dark:border-neutral-700 rounded-lg px-2.5 py-1.5 text-xs text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
         </div>
       </div>
 
-      {/* 4. Quick Duration Presets */}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="text-[10px] text-neutral-500 dark:text-neutral-400 font-medium">
-          Cộng nhanh thời lượng:
-        </span>
-        {[
-          { label: '+30 phút', mins: 30 },
-          { label: '+45 phút', mins: 45 },
-          { label: '+1 giờ', mins: 60 },
-          { label: '+2 giờ', mins: 120 },
-          { label: '+3 giờ', mins: 180 },
-        ].map((item) => (
-          <button
-            key={item.mins}
-            type="button"
-            onClick={() => addDuration(item.mins)}
-            className="px-2 py-0.5 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-850 text-[10px] font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
-          >
-            {item.label}
-          </button>
-        ))}
+      {/* 4. Quick Duration Presets with 2-Way Explanation */}
+      <div className="space-y-1.5 pt-0.5">
+        <div className="flex items-center justify-between text-[10px]">
+          <span className="text-neutral-500 dark:text-neutral-400 font-medium">
+            Cộng nhanh thời lượng:
+          </span>
+          <span className="text-indigo-600 dark:text-indigo-400 font-medium italic">
+            {startTimeStr
+              ? '👉 Hạn chót = Bắt đầu + Thời lượng'
+              : dueTimeStr
+              ? '👉 Bắt đầu = Hạn chót - Thời lượng'
+              : '👉 Bắt đầu từ bây giờ'}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {[
+            { label: '+30 phút', mins: 30 },
+            { label: '+45 phút', mins: 45 },
+            { label: '+1 giờ', mins: 60 },
+            { label: '+2 giờ', mins: 120 },
+            { label: '+3 giờ', mins: 180 },
+          ].map((item) => (
+            <button
+              key={item.mins}
+              type="button"
+              onClick={() => addDuration(item.mins)}
+              className="px-2.5 py-1 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-850 text-[10px] font-semibold text-neutral-700 dark:text-neutral-300 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition shadow-2xs cursor-pointer"
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* 5. Conflict alert if start > due (Non-blocking warning with auto-fix button) */}
@@ -494,9 +572,9 @@ export const SmartSchedulePicker: React.FC<SmartSchedulePickerProps> = ({
         </div>
       )}
 
-      {/* 6. Live Preview */}
+      {/* 6. Live Date/Time Preview with Meaningful Status Badge */}
       {previewInfo && (
-        <div className="p-2.5 rounded-lg bg-neutral-100 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700/80 flex items-center justify-between text-xs">
+        <div className="p-2.5 rounded-xl bg-neutral-100 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700/80 flex items-center justify-between text-xs">
           <div>
             <div className="font-bold text-neutral-900 dark:text-neutral-100">
               {previewInfo.title}
@@ -505,7 +583,19 @@ export const SmartSchedulePicker: React.FC<SmartSchedulePickerProps> = ({
               {previewInfo.sub}
             </div>
           </div>
-          <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="Thời gian hợp lệ" />
+          <div>
+            {hasTimeConflict ? (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 bg-rose-50 dark:bg-rose-950/60 px-2 py-0.5 rounded-full border border-rose-200 dark:border-rose-800">
+                <AlertTriangle className="w-3 h-3" />
+                <span>Giờ không hợp lệ</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                <CheckCircle2 className="w-3 h-3" />
+                <span>Hợp lệ (24h)</span>
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>
